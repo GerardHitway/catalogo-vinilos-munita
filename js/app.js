@@ -346,9 +346,7 @@ class VinylApp {
               <div class="card-price">
                 ${this.renderPrice(vinyl.price, currency)}
               </div>
-              <button type="button" class="btn-add-cart" data-add-to-cart="${safeId}" aria-label="Agregar ${safeTitle} al carrito">
-                <span aria-hidden="true">+</span> Agregar
-              </button>
+              <div class="product-cart-control" data-product-cart="${safeId}"></div>
             </div>
           </div>
 
@@ -356,12 +354,15 @@ class VinylApp {
       `;
     }).join('');
 
+    this.updateCartButtons();
+
     // Asignar eventos de click a las tarjetas
     grid.querySelectorAll('.vinyl-card').forEach(card => {
       card.addEventListener('click', (e) => {
-        if (e.target.closest('[data-add-to-cart]')) {
+        const cartAction = e.target.closest('[data-product-cart-action]');
+        if (cartAction) {
           e.stopPropagation();
-          this.toggleCartProduct(card.dataset.id);
+          this.handleProductCartAction(card.dataset.id, cartAction.dataset.productCartAction);
           return;
         }
         const id = card.dataset.id;
@@ -380,7 +381,7 @@ class VinylApp {
     if (item) item.quantity += 1;
     else this.cart.push({ id: vinyl.id, quantity: 1 });
     this.renderCart();
-    showToast(`${vinyl.title} agregado al carrito`, 'success');
+    if (!item) showToast(`${vinyl.title} agregado al carrito`, 'success');
   }
 
   removeFromCart(id) {
@@ -393,33 +394,39 @@ class VinylApp {
     }
   }
 
-  toggleCartProduct(id) {
-    if (this.cart.some(item => String(item.id) === String(id))) {
-      this.removeFromCart(id);
-    } else {
+  changeCartQuantity(id, direction) {
+    const item = this.cart.find(entry => String(entry.id) === String(id));
+    if (direction > 0) {
       this.addToCart(id);
+    } else if (item) {
+      this.setCartQuantity(id, item.quantity - 1);
+    }
+  }
+
+  handleProductCartAction(id, action) {
+    if (action === 'add' || action === 'increase') {
+      this.changeCartQuantity(id, 1);
+    } else if (action === 'decrease') {
+      this.changeCartQuantity(id, -1);
     }
   }
 
   updateCartButtons() {
-    document.querySelectorAll('[data-add-to-cart]').forEach(button => {
-      const id = button.dataset.addToCart;
-      const vinyl = this.vinyls.find(item => String(item.id) === String(id));
-      const inCart = this.cart.some(item => String(item.id) === String(id));
-      button.classList.toggle('in-cart', inCart);
-      button.setAttribute('aria-label', `${inCart ? 'Quitar' : 'Agregar'} ${vinyl?.title || 'producto'} ${inCart ? 'del' : 'al'} carrito`);
-      button.innerHTML = inCart
-        ? '<span aria-hidden="true">−</span> Quitar'
-        : '<span aria-hidden="true">+</span> Agregar';
+    document.querySelectorAll('[data-product-cart]').forEach(container => {
+      const id = container.dataset.productCart;
+      const item = this.cart.find(entry => String(entry.id) === String(id));
+      const vinyl = this.vinyls.find(product => String(product.id) === String(id));
+      container.innerHTML = item
+        ? `<div class="cart-quantity-control" aria-label="Unidades de ${escapeHtml(vinyl?.title || 'producto')} en cotización">
+            <button type="button" data-product-cart-action="decrease" data-cart-id="${escapeHtml(id)}" aria-label="Quitar una unidad">−</button>
+            <span aria-live="polite">${item.quantity}</span>
+            <button type="button" data-product-cart-action="increase" data-cart-id="${escapeHtml(id)}" aria-label="Agregar una unidad">+</button>
+          </div>`
+        : `<button type="button" class="btn-add-cart" data-product-cart-action="add" data-cart-id="${escapeHtml(id)}" aria-label="Agregar ${escapeHtml(vinyl?.title || 'producto')} al carrito"><span aria-hidden="true">+</span> Agregar</button>`;
     });
-
-    const detailButton = document.getElementById('btnAddToCartFromDetail');
-    if (detailButton) {
-      const inCart = this.cart.some(item => String(item.id) === String(this.currentDetailVinylId));
-      detailButton.classList.toggle('in-cart', inCart);
-      detailButton.innerHTML = inCart
-        ? '<span aria-hidden="true">−</span> Quitar del carrito'
-        : '<span aria-hidden="true">+</span> Agregar al carrito';
+    const detailControl = document.getElementById('detailCartControl');
+    if (detailControl && this.currentDetailVinylId !== null) {
+      detailControl.dataset.productCart = this.currentDetailVinylId;
     }
   }
 
@@ -578,6 +585,7 @@ class VinylApp {
     const modal = document.getElementById('detailModalBackdrop');
     const currency = this.settings.currency || '$';
 
+    document.getElementById('detailCartControl').dataset.productCart = vinyl.id;
     document.getElementById('modalDetailTitle').textContent = vinyl.title;
     this.detailImages = this.getProductImages(vinyl);
     if (!this.detailImages.length) {
@@ -712,8 +720,11 @@ class VinylApp {
         if (e.target === detailBackdrop) this.closeVinylDetail();
       });
     }
-    document.getElementById('btnAddToCartFromDetail')?.addEventListener('click', () => {
-      if (this.currentDetailVinylId !== null) this.toggleCartProduct(this.currentDetailVinylId);
+    document.getElementById('detailCartControl')?.addEventListener('click', event => {
+      if (!(event.target instanceof Element)) return;
+      const button = event.target.closest('[data-product-cart-action]');
+      if (!button || this.currentDetailVinylId === null) return;
+      this.handleProductCartAction(this.currentDetailVinylId, button.dataset.productCartAction);
     });
 
     document.getElementById('btnOpenCart')?.addEventListener('click', () => this.openCart());
