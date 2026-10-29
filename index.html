@@ -131,7 +131,7 @@
         <div class="cart-discount-control">
           <label for="cartDiscountPercent">Descuento para todo el pedido</label>
           <div class="cart-discount-input">
-            <input type="number" id="cartDiscountPercent" min="0" max="10" step="0.01" value="0" inputmode="decimal" aria-describedby="cartDiscountHelp cartDiscountLimitNotice">
+            <input type="text" id="cartDiscountPercent" value="0" inputmode="numeric" pattern="[0-9]*" aria-describedby="cartDiscountHelp cartDiscountLimitNotice">
             <span>%</span>
           </div>
           <p id="cartDiscountHelp">Se aplica sobre los productos que tienen precio.</p>

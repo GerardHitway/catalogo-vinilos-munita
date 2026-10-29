@@ -95,7 +95,7 @@ function createXlsxBlob(files) {
 
 function normalizeCartDiscountPercent(value) {
   const numericValue = Number(value);
-  return Number.isFinite(numericValue) ? Math.min(10, Math.max(0, numericValue)) : 0;
+  return Number.isFinite(numericValue) ? Math.min(10, Math.max(0, Math.trunc(numericValue))) : 0;
 }
 
 function calculateQuoteTotals(cartRows, discountPercent = 0) {
@@ -814,7 +814,9 @@ class VinylApp {
     });
     document.getElementById('cartDiscountPercent')?.addEventListener('input', event => {
       if (!(event.target instanceof HTMLInputElement)) return;
-      this.setCartDiscount(event.target.value);
+      const input = event.target;
+      input.value = input.value.replace(/\D/g, '');
+      this.setCartDiscount(input.value);
     });
     document.getElementById('cartDiscountPercent')?.addEventListener('change', event => {
       if (!(event.target instanceof HTMLInputElement)) return;
