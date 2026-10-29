@@ -2,7 +2,7 @@
 
 Aplicación web moderna y táctil diseñada específicamente para que tiendas de música, ferias de coleccionistas y mostradores puedan usar su **tablet (iPad o Android)** como un kiosco interactivo de productos, y desplegarla en **Vercel** en minutos.
 
-Hitway Music & Books es un catálogo interactivo de solo lectura. Los productos, precios e imágenes se administran desde Google Sheets.
+Hitway Music & Books es un catálogo de CD y vinilos administrado desde Google Sheets. Los clientes pueden armar una solicitud en el carrito y descargar una cotización en Excel.
 
 ---
 
@@ -17,7 +17,9 @@ Hitway Music & Books es un catálogo interactivo de solo lectura. Los productos,
 
 ### 📱 Experiencia Diseñada para Tablets
 - **Galería de fotos:** Cada producto puede tener varias imágenes, navegables desde su ficha.
-- **Modo de solo lectura:** Los clientes pueden explorar el catálogo, pero no agregar, editar ni borrar productos desde la aplicación.
+- **Carrito de cotización:** Agrega CD y vinilos, ajusta las cantidades y descarga una cotización `.xlsx` con los productos solicitados, las unidades y los precios disponibles.
+- **Alcance del catálogo:** Se muestran CD y vinilos, según la columna `FORMATO` de la hoja.
+- **Catálogo administrado desde la hoja:** Los productos, precios e imágenes se actualizan desde Google Sheets; no se pueden editar desde la aplicación.
 - **PWA (Progressive Web App):** Instalable en la pantalla de inicio del iPad o Android para ejecutarse a pantalla completa (Fullscreen Kiosk Mode) sin barras del navegador.
 - **Búsqueda y orden:** Búsqueda por producto o artista y orden por precio ascendente/descendente o artista A-Z.
 - **Tracklist:** Las canciones se muestran desde la columna `TRACKLIST` de la hoja.
@@ -65,16 +67,17 @@ npx vercel
 
 ## 🔐 Administración del catálogo
 
-El catálogo es de solo lectura. Administra productos, precios e imágenes directamente en Google Sheets; la aplicación sincroniza los cambios automáticamente.
+El catálogo contiene CD y vinilos. Administra productos, precios e imágenes directamente en Google Sheets; la aplicación sincroniza los cambios automáticamente. El carrito permite preparar una solicitud y exportarla como archivo Excel.
 
 ### Sincronizar productos desde Google Sheets
 
-- En la hoja, usa los encabezados `PRODUCTO`, `SKU`, `IMAGENES`, `PRECIO` y `TRACKLIST`.
+- En la hoja, usa los encabezados `PRODUCTO`, `SKU`, `IMAGENES`, `FORMATO`, `PRECIO` y `TRACKLIST`.
 - Comparte la hoja como **Cualquier persona con el enlace → Lector** para que el catálogo pueda leerla sin iniciar sesión.
 - La aplicación utiliza la hoja configurada para la sincronización automática.
 - La sincronización también se ejecuta al abrir el catálogo y cada 5 minutos mientras está abierto. Solo se muestran los productos de la hoja; los que se quiten de ella desaparecerán del catálogo.
 - Para un producto con varias imágenes, coloca cada URL en una fila. En las filas de imágenes adicionales, deja `PRODUCTO` y `SKU` vacíos. La primera imagen se usa como portada.
 - El `SKU` identifica el producto y la columna `PRECIO` actualiza su precio.
+- El formato que aparece en el catálogo se toma de la columna `FORMATO`.
 - El tracklist se toma de la celda `TRACKLIST`; se admiten pistas multilínea con numeración de lado (por ejemplo, `A1 Título 3:28`).
 - Si un producto no tiene precio, igualmente aparecerá y mostrará **Consultar precio** hasta que completes la celda.
 

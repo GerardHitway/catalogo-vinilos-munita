@@ -97,10 +97,11 @@ function parseSheetProducts(csv) {
     sku: headers.findIndex(header => ['SKU', 'CODIGO', 'CODIGOPRODUCTO'].includes(header)),
     image: headers.findIndex(header => ['IMAGEN', 'IMAGENES', 'IMAGE', 'IMAGES'].includes(header)),
     price: headers.findIndex(header => ['PRECIO', 'PRICE'].includes(header)),
+    format: headers.findIndex(header => header === 'FORMATO' || header === 'FORMAT'),
     tracklist: headers.findIndex(header => header === 'TRACKLIST' || header === 'PISTAS')
   };
-  if (columns.product < 0 || columns.sku < 0 || columns.price < 0) {
-    throw new Error('La hoja debe tener encabezados PRODUCTO, SKU y PRECIO.');
+  if (columns.product < 0 || columns.sku < 0 || columns.price < 0 || columns.format < 0) {
+    throw new Error('La hoja debe tener encabezados PRODUCTO, SKU, PRECIO y FORMATO.');
   }
 
   const products = new Map();
@@ -121,6 +122,7 @@ function parseSheetProducts(csv) {
         name: productName,
         sku,
         price: parseSheetPrice(priceValue, rowNumber),
+        format: columns.format >= 0 ? (cells[columns.format] || '').trim() : null,
         images: [],
         tracklist: []
       };
@@ -130,12 +132,16 @@ function parseSheetProducts(csv) {
       }
       if (existing) {
         existing.price = currentProduct.price;
+        if (currentProduct.format !== null) existing.format = currentProduct.format;
         currentProduct = existing;
       } else {
         products.set(sku, currentProduct);
       }
     } else if (cells[columns.price] && cells[columns.price].trim() && currentProduct) {
       currentProduct.price = parseSheetPrice(cells[columns.price], rowNumber);
+    }
+    if (columns.format >= 0 && currentProduct && (cells[columns.format] || '').trim()) {
+      currentProduct.format = cells[columns.format].trim();
     }
 
     if (image && currentProduct) {
@@ -151,7 +157,11 @@ function parseSheetProducts(csv) {
   });
 
   if (!products.size) throw new Error('No se encontraron productos con PRODUCTO y SKU.');
-  return [...products.values()];
+  const supportedProducts = [...products.values()].filter(product =>
+    ['CD', 'VINILO'].includes(normalizeSheetHeader(product.format || ''))
+  );
+  if (!supportedProducts.length) throw new Error('No se encontraron productos con FORMATO CD o VINILO.');
+  return supportedProducts;
 }
 
 // ==========================================================================
@@ -730,7 +740,7 @@ class VinylStorage {
     const existingVinyls = await this.getAllVinyls();
     const existingBySku = new Map(existingVinyls.map(vinyl => [String(vinyl.sku || vinyl.catalogNumber || '').trim(), vinyl]));
     const productsWithoutPrice = importedProducts.filter(product => product.price === null).length;
-    const preservedFields = ['genre', 'year', 'label', 'format', 'weight', 'rpm', 'condition', 'featured', 'description', 'tracklist', 'discColor'];
+    const preservedFields = ['genre', 'year', 'label', 'weight', 'rpm', 'condition', 'featured', 'description', 'tracklist', 'discColor'];
     const vinyls = importedProducts.map((product, index) => {
       const existing = existingBySku.get(product.sku);
       const preservedData = Object.fromEntries(
@@ -754,7 +764,9 @@ class VinylStorage {
         genre: existing?.genre || 'Vinilos',
         year: existing?.year || new Date().getFullYear(),
         label: existing?.label || 'Vinilos Munita',
-        format: existing?.format || '12" LP',
+        format: product.format === null
+          ? existing?.format || 'Formato no especificado'
+          : product.format || 'Formato no especificado',
         weight: existing?.weight || '180g',
         rpm: existing?.rpm || '33 ⅓ RPM',
         condition: existing?.condition || 'Nuevo',

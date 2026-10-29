@@ -12,6 +12,147 @@ function escapeHtml(value) {
   })[char]);
 }
 
+function escapeXml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, char => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&apos;'
+  })[char]);
+}
+
+function createXlsxBlob(files) {
+  const encoder = new TextEncoder();
+  const crc32 = data => {
+    let crc = 0xffffffff;
+    for (const byte of data) {
+      crc ^= byte;
+      for (let bit = 0; bit < 8; bit += 1) {
+        crc = (crc >>> 1) ^ (crc & 1 ? 0xedb88320 : 0);
+      }
+    }
+    return (crc ^ 0xffffffff) >>> 0;
+  };
+  const localParts = [];
+  const centralParts = [];
+  let localOffset = 0;
+
+  files.forEach(([path, content]) => {
+    const name = encoder.encode(path);
+    const data = encoder.encode(content);
+    const checksum = crc32(data);
+    const localHeader = new Uint8Array(30 + name.length);
+    const localView = new DataView(localHeader.buffer);
+    localView.setUint32(0, 0x04034b50, true);
+    localView.setUint16(4, 20, true);
+    localView.setUint16(6, 0x0800, true);
+    localView.setUint16(8, 0, true);
+    localView.setUint16(12, 0x0021, true);
+    localView.setUint32(14, checksum, true);
+    localView.setUint32(18, data.length, true);
+    localView.setUint32(22, data.length, true);
+    localView.setUint16(26, name.length, true);
+    localHeader.set(name, 30);
+    localParts.push(localHeader, data);
+
+    const centralHeader = new Uint8Array(46 + name.length);
+    const centralView = new DataView(centralHeader.buffer);
+    centralView.setUint32(0, 0x02014b50, true);
+    centralView.setUint16(4, 20, true);
+    centralView.setUint16(6, 20, true);
+    centralView.setUint16(8, 0x0800, true);
+    centralView.setUint16(10, 0, true);
+    centralView.setUint16(14, 0x0021, true);
+    centralView.setUint32(16, checksum, true);
+    centralView.setUint32(20, data.length, true);
+    centralView.setUint32(24, data.length, true);
+    centralView.setUint16(28, name.length, true);
+    centralView.setUint32(42, localOffset, true);
+    centralHeader.set(name, 46);
+    centralParts.push(centralHeader);
+    localOffset += localHeader.length + data.length;
+  });
+
+  const centralDirectory = new Uint8Array(centralParts.reduce((size, part) => size + part.length, 0));
+  let centralOffset = 0;
+  centralParts.forEach(part => {
+    centralDirectory.set(part, centralOffset);
+    centralOffset += part.length;
+  });
+  const endRecord = new Uint8Array(22);
+  const endView = new DataView(endRecord.buffer);
+  endView.setUint32(0, 0x06054b50, true);
+  endView.setUint16(8, files.length, true);
+  endView.setUint16(10, files.length, true);
+  endView.setUint32(12, centralDirectory.length, true);
+  endView.setUint32(16, localOffset, true);
+
+  return new Blob([...localParts, centralDirectory, endRecord], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  });
+}
+
+function buildQuoteWorkbook(cartRows) {
+  const hasMissingPrices = cartRows.some(({ vinyl }) =>
+    vinyl.price === null || vinyl.price === undefined || !Number.isFinite(Number(vinyl.price))
+  );
+  const pricedRows = cartRows.filter(({ vinyl }) =>
+    vinyl.price !== null && vinyl.price !== undefined && Number.isFinite(Number(vinyl.price))
+  );
+  const subtotal = pricedRows.reduce((sum, { vinyl, quantity }) => sum + Number(vinyl.price) * quantity, 0);
+  const totalWithTax = pricedRows.reduce(
+    (sum, { vinyl, quantity }) => sum + Math.round(Number(vinyl.price) * 1.19) * quantity,
+    0
+  );
+  const worksheetRows = [
+    ['Cotización - Hitway Music & Books'],
+    ['Fecha', new Date().toLocaleDateString('es-CL')],
+    ['Producto', 'Artista', 'Formato', 'SKU', 'Unidades', 'Precio unitario (sin IVA)', 'Total línea con IVA']
+  ];
+
+  cartRows.forEach(({ vinyl, quantity }) => {
+    const hasPrice = vinyl.price !== null && vinyl.price !== undefined && Number.isFinite(Number(vinyl.price));
+    worksheetRows.push([
+      vinyl.title || vinyl.name || '',
+      vinyl.artist || '',
+      vinyl.format || '',
+      vinyl.sku || '',
+      quantity,
+      hasPrice ? Number(vinyl.price) : 'Consultar precio',
+      hasPrice ? Math.round(Number(vinyl.price) * 1.19) * quantity : 'Consultar precio'
+    ]);
+  });
+
+  worksheetRows.push([]);
+  worksheetRows.push(['', '', '', '', '', 'Subtotal', hasMissingPrices ? 'Pendiente' : subtotal]);
+  worksheetRows.push(['', '', '', '', '', 'IVA (19%)', hasMissingPrices ? 'Pendiente' : totalWithTax - subtotal]);
+  worksheetRows.push(['', '', '', '', '', 'Total con IVA', hasMissingPrices ? 'Pendiente' : totalWithTax]);
+  const columnName = index => {
+    let name = '';
+    for (let number = index + 1; number > 0; number = Math.floor((number - 1) / 26)) {
+      name = String.fromCharCode(65 + (number - 1) % 26) + name;
+    }
+    return name;
+  };
+  const cells = (row, rowIndex) => row.map((value, colIndex) => {
+    if (value === undefined || value === null || value === '') return '';
+    const reference = `${columnName(colIndex)}${rowIndex + 1}`;
+    if (typeof value === 'number') return `<c r="${reference}"><v>${value}</v></c>`;
+    return `<c r="${reference}" t="inlineStr"><is><t xml:space="preserve">${escapeXml(value)}</t></is></c>`;
+  }).join('');
+  const sheetRows = worksheetRows.map((row, index) => `<row r="${index + 1}">${cells(row, index)}</row>`).join('');
+  const worksheet = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${sheetRows}</sheetData><autoFilter ref="A3:G${cartRows.length + 3}"/></worksheet>`;
+  const workbookFiles = [
+    ['[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>'],
+    ['_rels/.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'],
+    ['xl/workbook.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Cotización" sheetId="1" r:id="rId1"/></sheets></workbook>'],
+    ['xl/_rels/workbook.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>'],
+    ['xl/worksheets/sheet1.xml', worksheet]
+  ];
+  return createXlsxBlob(workbookFiles);
+}
+
 class VinylApp {
   constructor() {
     this.vinyls = [];
@@ -25,6 +166,7 @@ class VinylApp {
     this.currentImageIndex = 0;
     this.galleryTouchStartX = null;
     this.isSheetSyncing = false;
+    this.cart = [];
   }
 
   async init() {
@@ -56,14 +198,17 @@ class VinylApp {
     const storeTitleEl = document.getElementById('storeBrandTitle');
     const storeSubEl = document.getElementById('storeBrandSubtitle');
     if (storeTitleEl) storeTitleEl.textContent = 'Hitway Music & Books';
-    if (storeSubEl) storeSubEl.textContent = 'Catálogo de Música y Libros';
+    if (storeSubEl) storeSubEl.textContent = 'Catálogo de CD y vinilos';
     document.title = 'Hitway Music & Books';
   }
 
   async loadAndRender() {
     this.vinyls = (await DB.getAllVinyls()).filter(vinyl => vinyl.sku);
+    const availableIds = new Set(this.vinyls.map(vinyl => String(vinyl.id)));
+    this.cart = this.cart.filter(item => availableIds.has(String(item.id)));
     this.updateStats();
     this.applyFilters();
+    this.renderCart();
   }
 
   async syncSheetCatalog(sheetUrl = this.settings.sheetUrl, { silent = false } = {}) {
@@ -181,7 +326,7 @@ class VinylApp {
             <div class="vinyl-disc-peeking"></div>
             <div class="card-cover-container">
               <img src="${safeCover}" alt="${safeTitle}" class="card-cover-img" loading="lazy" onerror="this.onerror=null;this.src='./assets/icon-192.svg'">
-              <span class="card-badge-format">${escapeHtml(vinyl.format || '12" LP')}</span>
+              <span class="card-badge-format">${escapeHtml(vinyl.format || 'Formato no especificado')}</span>
               <span class="card-badge-condition">${escapeHtml(vinyl.condition || 'M')}</span>
               ${imageCount > 1 ? `<span class="card-image-count">${imageCount} fotos</span>` : ''}
             </div>
@@ -189,7 +334,7 @@ class VinylApp {
 
           <div class="card-info">
             <div class="card-genre-row">
-              <span>${escapeHtml(vinyl.genre || 'Música')}</span>
+              <span>${escapeHtml(vinyl.format?.trim().toUpperCase() === 'CD' ? 'CD' : vinyl.genre || 'Vinilos')}</span>
             </div>
             
             <div class="card-title-group">
@@ -201,6 +346,9 @@ class VinylApp {
               <div class="card-price">
                 ${this.renderPrice(vinyl.price, currency)}
               </div>
+              <button type="button" class="btn-add-cart" data-add-to-cart="${safeId}" aria-label="Agregar ${safeTitle} al carrito">
+                <span aria-hidden="true">+</span> Agregar
+              </button>
             </div>
           </div>
 
@@ -211,10 +359,133 @@ class VinylApp {
     // Asignar eventos de click a las tarjetas
     grid.querySelectorAll('.vinyl-card').forEach(card => {
       card.addEventListener('click', (e) => {
+        if (e.target.closest('[data-add-to-cart]')) {
+          e.stopPropagation();
+          this.addToCart(card.dataset.id);
+          return;
+        }
         const id = card.dataset.id;
         this.openVinylDetail(id);
       });
     });
+  }
+
+  addToCart(id) {
+    const vinyl = this.vinyls.find(item => String(item.id) === String(id));
+    if (!vinyl) {
+      showToast('No se pudo agregar el producto. Actualiza el catálogo e inténtalo nuevamente.', 'error');
+      return;
+    }
+    const item = this.cart.find(entry => String(entry.id) === String(id));
+    if (item) item.quantity += 1;
+    else this.cart.push({ id: vinyl.id, quantity: 1 });
+    this.renderCart();
+    showToast(`${vinyl.title} agregado al carrito`, 'success');
+  }
+
+  getCartRows() {
+    return this.cart
+      .map(item => ({
+        vinyl: this.vinyls.find(vinyl => String(vinyl.id) === String(item.id)),
+        quantity: item.quantity
+      }))
+      .filter(row => row.vinyl);
+  }
+
+  renderCart() {
+    const countEl = document.getElementById('cartItemCount');
+    const listEl = document.getElementById('cartItems');
+    const totalEl = document.getElementById('cartTotal');
+    const noticeEl = document.getElementById('cartPriceNotice');
+    const exportButton = document.getElementById('btnExportQuote');
+    const clearButton = document.getElementById('btnClearCart');
+    if (!countEl || !listEl || !totalEl || !noticeEl || !exportButton || !clearButton) return;
+
+    const rows = this.getCartRows();
+    const count = rows.reduce((sum, row) => sum + row.quantity, 0);
+    countEl.textContent = count;
+    countEl.setAttribute('aria-label', `${count} unidades`);
+    exportButton.disabled = rows.length === 0;
+    clearButton.disabled = rows.length === 0;
+
+    if (!rows.length) {
+      listEl.innerHTML = '<p class="cart-empty">Aún no has agregado productos.</p>';
+      totalEl.textContent = this.formatPrice(0);
+      noticeEl.hidden = true;
+      return;
+    }
+
+    let hasMissingPrices = false;
+    const total = rows.reduce((sum, { vinyl, quantity }) => {
+      const hasPrice = vinyl.price !== null && vinyl.price !== undefined && Number.isFinite(Number(vinyl.price));
+      if (!hasPrice) {
+        hasMissingPrices = true;
+        return sum;
+      }
+      return sum + Math.round(Number(vinyl.price) * 1.19) * quantity;
+    }, 0);
+
+    listEl.innerHTML = rows.map(({ vinyl, quantity }) => `
+      <article class="cart-row" data-cart-id="${escapeHtml(vinyl.id)}">
+        <div class="cart-product-info">
+          <strong>${escapeHtml(vinyl.title || vinyl.name)}</strong>
+          <span>${escapeHtml(vinyl.artist || '')} · ${escapeHtml(vinyl.format || '')}</span>
+          <span>${escapeHtml(this.formatPrice(vinyl.price))} c/u + IVA</span>
+        </div>
+        <div class="cart-row-actions" aria-label="Cantidad solicitada">
+          <button type="button" data-cart-action="decrease" data-cart-id="${escapeHtml(vinyl.id)}" aria-label="Restar una unidad">−</button>
+          <input type="number" min="1" step="1" value="${quantity}" data-cart-quantity="${escapeHtml(vinyl.id)}" aria-label="Unidades de ${escapeHtml(vinyl.title)}">
+          <button type="button" data-cart-action="increase" data-cart-id="${escapeHtml(vinyl.id)}" aria-label="Agregar una unidad">+</button>
+          <button type="button" class="cart-remove" data-cart-action="remove" data-cart-id="${escapeHtml(vinyl.id)}" aria-label="Quitar ${escapeHtml(vinyl.title)}">Quitar</button>
+        </div>
+      </article>
+    `).join('');
+    totalEl.textContent = this.formatPrice(total);
+    noticeEl.hidden = !hasMissingPrices;
+  }
+
+  setCartQuantity(id, quantity) {
+    const item = this.cart.find(entry => String(entry.id) === String(id));
+    if (!item) return;
+    if (!Number.isInteger(quantity) || quantity < 1) {
+      this.cart = this.cart.filter(entry => String(entry.id) !== String(id));
+    } else {
+      item.quantity = quantity;
+    }
+    this.renderCart();
+  }
+
+  openCart() {
+    this.renderCart();
+    const modal = document.getElementById('cartModalBackdrop');
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+  }
+
+  closeCart() {
+    const modal = document.getElementById('cartModalBackdrop');
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = document.getElementById('detailModalBackdrop').classList.contains('open') ? 'hidden' : '';
+  }
+
+  exportQuote() {
+    const rows = this.getCartRows();
+    if (!rows.length) {
+      showToast('Agrega productos antes de generar la cotización.', 'error');
+      return;
+    }
+    const blob = buildQuoteWorkbook(rows);
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `cotizacion-hitway-${new Date().toISOString().slice(0, 10)}.xlsx`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    showToast('Cotización Excel descargada', 'success');
   }
 
   getProductImages(vinyl) {
@@ -275,7 +546,8 @@ class VinylApp {
     this.updateDetailGallery();
     document.getElementById('modalDetailArtist').textContent = vinyl.artist;
     document.getElementById('modalDetailGenre').textContent = vinyl.genre;
-    document.getElementById('modalDetailFormatBadge').textContent = vinyl.format || '12" LP';
+    document.getElementById('modalDetailGenre').hidden = vinyl.format?.trim().toUpperCase() === 'CD';
+    document.getElementById('modalDetailFormatBadge').textContent = vinyl.format || 'Formato no especificado';
     document.getElementById('modalDetailConditionBadge').textContent = vinyl.condition || 'Mint (M)';
     document.getElementById('modalDetailPrice').textContent = this.formatPrice(vinyl.price, currency);
     document.getElementById('modalDetailTotal').textContent = this.formatPrice(
@@ -399,6 +671,45 @@ class VinylApp {
         if (e.target === detailBackdrop) this.closeVinylDetail();
       });
     }
+    document.getElementById('btnAddToCartFromDetail')?.addEventListener('click', () => {
+      if (this.currentDetailVinylId !== null) this.addToCart(this.currentDetailVinylId);
+    });
+
+    document.getElementById('btnOpenCart')?.addEventListener('click', () => this.openCart());
+    document.getElementById('btnCloseCart')?.addEventListener('click', () => this.closeCart());
+    document.getElementById('cartModalBackdrop')?.addEventListener('click', event => {
+      if (event.target === event.currentTarget) this.closeCart();
+    });
+    document.getElementById('btnClearCart')?.addEventListener('click', () => {
+      this.cart = [];
+      this.renderCart();
+    });
+    document.getElementById('btnExportQuote')?.addEventListener('click', () => this.exportQuote());
+    document.getElementById('cartItems')?.addEventListener('click', event => {
+      if (!(event.target instanceof Element)) return;
+      const button = event.target.closest('[data-cart-action]');
+      if (!button) return;
+      const { cartAction, cartId } = button.dataset;
+      const item = this.cart.find(entry => String(entry.id) === String(cartId));
+      if (!item) return;
+      if (cartAction === 'increase') this.setCartQuantity(cartId, item.quantity + 1);
+      if (cartAction === 'decrease') this.setCartQuantity(cartId, item.quantity - 1);
+      if (cartAction === 'remove') this.setCartQuantity(cartId, 0);
+    });
+    document.getElementById('cartItems')?.addEventListener('change', event => {
+      if (!(event.target instanceof HTMLInputElement) || !event.target.matches('[data-cart-quantity]')) return;
+      const quantity = Number(event.target.value);
+      if (!Number.isInteger(quantity) || quantity < 1) {
+        this.renderCart();
+        return;
+      }
+      this.setCartQuantity(event.target.dataset.cartQuantity, quantity);
+    });
+    document.addEventListener('keydown', event => {
+      if (event.key !== 'Escape') return;
+      if (document.getElementById('cartModalBackdrop').classList.contains('open')) this.closeCart();
+      else if (document.getElementById('detailModalBackdrop').classList.contains('open')) this.closeVinylDetail();
+    });
 
     document.getElementById('galleryPrev')?.addEventListener('click', () => this.changeDetailImage(-1));
     document.getElementById('galleryNext')?.addEventListener('click', () => this.changeDetailImage(1));
