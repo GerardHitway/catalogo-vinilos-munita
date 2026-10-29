@@ -662,6 +662,17 @@ body {
   color: #0c0d12;
 }
 
+.btn-add-cart.in-cart {
+  border-color: var(--accent-red);
+  background: rgba(239, 68, 68, 0.1);
+  color: #f87171;
+}
+
+.btn-add-cart.in-cart:hover {
+  background: var(--accent-red);
+  color: #fff;
+}
+
 .btn-add-cart-detail {
   align-self: flex-start;
   min-height: 46px;

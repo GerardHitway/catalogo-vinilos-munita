@@ -138,16 +138,17 @@ function buildQuoteWorkbook(cartRows) {
   const cells = (row, rowIndex) => row.map((value, colIndex) => {
     if (value === undefined || value === null || value === '') return '';
     const reference = `${columnName(colIndex)}${rowIndex + 1}`;
-    if (typeof value === 'number') return `<c r="${reference}"><v>${value}</v></c>`;
+    if (typeof value === 'number') return `<c r="${reference}" s="1"><v>${value}</v></c>`;
     return `<c r="${reference}" t="inlineStr"><is><t xml:space="preserve">${escapeXml(value)}</t></is></c>`;
   }).join('');
   const sheetRows = worksheetRows.map((row, index) => `<row r="${index + 1}">${cells(row, index)}</row>`).join('');
   const worksheet = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${sheetRows}</sheetData><autoFilter ref="A3:G${cartRows.length + 3}"/></worksheet>`;
   const workbookFiles = [
-    ['[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>'],
+    ['[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>'],
     ['_rels/.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'],
     ['xl/workbook.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Cotización" sheetId="1" r:id="rId1"/></sheets></workbook>'],
-    ['xl/_rels/workbook.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>'],
+    ['xl/_rels/workbook.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>'],
+    ['xl/styles.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="1"><numFmt numFmtId="164" formatCode="[$-es-CL]#,##0"/></numFmts><fonts count="1"><font><sz val="11"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>'],
     ['xl/worksheets/sheet1.xml', worksheet]
   ];
   return createXlsxBlob(workbookFiles);
@@ -327,7 +328,6 @@ class VinylApp {
             <div class="card-cover-container">
               <img src="${safeCover}" alt="${safeTitle}" class="card-cover-img" loading="lazy" onerror="this.onerror=null;this.src='./assets/icon-192.svg'">
               <span class="card-badge-format">${escapeHtml(vinyl.format || 'Formato no especificado')}</span>
-              <span class="card-badge-condition">${escapeHtml(vinyl.condition || 'M')}</span>
               ${imageCount > 1 ? `<span class="card-image-count">${imageCount} fotos</span>` : ''}
             </div>
           </div>
@@ -361,7 +361,7 @@ class VinylApp {
       card.addEventListener('click', (e) => {
         if (e.target.closest('[data-add-to-cart]')) {
           e.stopPropagation();
-          this.addToCart(card.dataset.id);
+          this.toggleCartProduct(card.dataset.id);
           return;
         }
         const id = card.dataset.id;
@@ -383,6 +383,46 @@ class VinylApp {
     showToast(`${vinyl.title} agregado al carrito`, 'success');
   }
 
+  removeFromCart(id) {
+    const vinyl = this.vinyls.find(item => String(item.id) === String(id));
+    const initialLength = this.cart.length;
+    this.cart = this.cart.filter(item => String(item.id) !== String(id));
+    if (this.cart.length !== initialLength) {
+      this.renderCart();
+      if (vinyl) showToast(`${vinyl.title} quitado del carrito`, 'success');
+    }
+  }
+
+  toggleCartProduct(id) {
+    if (this.cart.some(item => String(item.id) === String(id))) {
+      this.removeFromCart(id);
+    } else {
+      this.addToCart(id);
+    }
+  }
+
+  updateCartButtons() {
+    document.querySelectorAll('[data-add-to-cart]').forEach(button => {
+      const id = button.dataset.addToCart;
+      const vinyl = this.vinyls.find(item => String(item.id) === String(id));
+      const inCart = this.cart.some(item => String(item.id) === String(id));
+      button.classList.toggle('in-cart', inCart);
+      button.setAttribute('aria-label', `${inCart ? 'Quitar' : 'Agregar'} ${vinyl?.title || 'producto'} ${inCart ? 'del' : 'al'} carrito`);
+      button.innerHTML = inCart
+        ? '<span aria-hidden="true">−</span> Quitar'
+        : '<span aria-hidden="true">+</span> Agregar';
+    });
+
+    const detailButton = document.getElementById('btnAddToCartFromDetail');
+    if (detailButton) {
+      const inCart = this.cart.some(item => String(item.id) === String(this.currentDetailVinylId));
+      detailButton.classList.toggle('in-cart', inCart);
+      detailButton.innerHTML = inCart
+        ? '<span aria-hidden="true">−</span> Quitar del carrito'
+        : '<span aria-hidden="true">+</span> Agregar al carrito';
+    }
+  }
+
   getCartRows() {
     return this.cart
       .map(item => ({
@@ -401,6 +441,7 @@ class VinylApp {
     const clearButton = document.getElementById('btnClearCart');
     if (!countEl || !listEl || !totalEl || !noticeEl || !exportButton || !clearButton) return;
 
+    this.updateCartButtons();
     const rows = this.getCartRows();
     const count = rows.reduce((sum, row) => sum + row.quantity, 0);
     countEl.textContent = count;
@@ -548,7 +589,6 @@ class VinylApp {
     document.getElementById('modalDetailGenre').textContent = vinyl.genre;
     document.getElementById('modalDetailGenre').hidden = vinyl.format?.trim().toUpperCase() === 'CD';
     document.getElementById('modalDetailFormatBadge').textContent = vinyl.format || 'Formato no especificado';
-    document.getElementById('modalDetailConditionBadge').textContent = vinyl.condition || 'Mint (M)';
     document.getElementById('modalDetailPrice').textContent = this.formatPrice(vinyl.price, currency);
     document.getElementById('modalDetailTotal').textContent = this.formatPrice(
       vinyl.price === null || vinyl.price === undefined ? null : Math.round(Number(vinyl.price) * 1.19),
@@ -574,6 +614,7 @@ class VinylApp {
 
     modal.classList.add('open');
     document.body.style.overflow = 'hidden';
+    this.updateCartButtons();
   }
 
   closeVinylDetail() {
@@ -672,7 +713,7 @@ class VinylApp {
       });
     }
     document.getElementById('btnAddToCartFromDetail')?.addEventListener('click', () => {
-      if (this.currentDetailVinylId !== null) this.addToCart(this.currentDetailVinylId);
+      if (this.currentDetailVinylId !== null) this.toggleCartProduct(this.currentDetailVinylId);
     });
 
     document.getElementById('btnOpenCart')?.addEventListener('click', () => this.openCart());

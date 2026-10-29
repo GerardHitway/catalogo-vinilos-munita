@@ -17,7 +17,7 @@ Hitway Music & Books es un catálogo de CD y vinilos administrado desde Google S
 
 ### 📱 Experiencia Diseñada para Tablets
 - **Galería de fotos:** Cada producto puede tener varias imágenes, navegables desde su ficha.
-- **Carrito de cotización:** Agrega CD y vinilos, ajusta las cantidades y descarga una cotización `.xlsx` con los productos solicitados, las unidades y los precios disponibles.
+- **Carrito de cotización:** Agrega o quita CD y vinilos, ajusta las cantidades y descarga una cotización `.xlsx` con los productos solicitados, unidades y precios con separador de miles.
 - **Alcance del catálogo:** Se muestran CD y vinilos, según la columna `FORMATO` de la hoja.
 - **Catálogo administrado desde la hoja:** Los productos, precios e imágenes se actualizan desde Google Sheets; no se pueden editar desde la aplicación.
 - **PWA (Progressive Web App):** Instalable en la pantalla de inicio del iPad o Android para ejecutarse a pantalla completa (Fullscreen Kiosk Mode) sin barras del navegador.
