@@ -25,7 +25,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet">
 
   <!-- Estilos -->
-  <link rel="stylesheet" href="./css/styles.css?v=5">
+  <link rel="stylesheet" href="./css/styles.css?v=6">
 </head>
 <body>
 
@@ -55,7 +55,7 @@
         <div class="header-search">
           <div class="search-input-wrapper">
             <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="text" id="searchInput" class="search-input" placeholder="Buscar por disco, artista, sello o año..." autocomplete="off">
+            <input type="text" id="searchInput" class="search-input" placeholder="Buscar por disco o artista..." autocomplete="off">
             <button type="button" id="searchClearBtn" class="search-clear-btn" aria-label="Limpiar búsqueda">✕</button>
           </div>
         </div>
@@ -74,34 +74,14 @@
       </div>
     </header>
 
-    <!-- BARRA DESLIZANTE DE GÉNEROS (SWIPE TÁCTIL) -->
-    <section class="genre-bar-section">
-      <div id="genreScrollContainer" class="genre-scroll-container">
-        <!-- Generado dinámicamente -->
-      </div>
-    </section>
-
     <!-- BARRA DE CONTROLES Y ORDENAMIENTO -->
     <section class="controls-bar">
       <div class="controls-left">
         <!-- Selector de Orden -->
         <select id="sortSelect" class="select-control" title="Ordenar catálogo">
-          <option value="featured">✨ Destacados primero</option>
-          <option value="price-low">💰 Precio: Menor a Mayor</option>
-          <option value="price-high">💎 Precio: Mayor a Menor</option>
-          <option value="year-new">📅 Año: Más Reciente</option>
-          <option value="year-old">⏳ Año: Más Clásico</option>
-          <option value="artist-az">🎤 Artista: A - Z</option>
-          <option value="title-az">💿 Álbum: A - Z</option>
-        </select>
-
-        <!-- Filtro Formato -->
-        <select id="formatFilterSelect" class="select-control" title="Filtrar por formato de vinilo">
-          <option value="all">Todos los Formatos</option>
-          <option value="12">12" LP</option>
-          <option value="2xLP">Doble LP (2xLP)</option>
-          <option value="Gatefold">Gatefold (Desplegable)</option>
-          <option value="180g">180g Audiophile</option>
+          <option value="price-low">Precio: menor a mayor</option>
+          <option value="price-high">Precio: mayor a menor</option>
+          <option value="artist-az" selected>Artista: A - Z</option>
         </select>
 
       </div>
@@ -132,40 +112,23 @@
   </div>
 
   <!-- ==========================================================================
-       MODAL DE DETALLES Y TOCADISCOS INTERACTIVO (TURNTABLE)
+       DETALLES DEL PRODUCTO
        ========================================================================== -->
   <div id="detailModalBackdrop" class="modal-backdrop">
     <div class="modal-content-card">
       <div class="modal-header-bar">
-        <span style="font-size:0.82rem; font-weight:700; color:var(--accent-gold); letter-spacing:1px; text-transform:uppercase;">
-          Experiencia de Vinilo en Alta Fidelidad
-        </span>
+        <span style="font-size:0.82rem; font-weight:700; color:var(--accent-gold); letter-spacing:1px; text-transform:uppercase;">Detalle del producto</span>
         <button type="button" id="btnCloseDetailModal" class="modal-close-btn" aria-label="Cerrar detalles">✕</button>
       </div>
 
       <div class="modal-body-scroll">
-        <!-- Columna Izquierda: Showcase de Vinilo con Giro Interactivo -->
-        <div class="turntable-showcase">
-          <div class="turntable-wrapper">
-            <div class="turntable-sleeve">
-              <img id="modalCoverImg" src="" alt="Portada del Vinilo">
-            </div>
-            <div id="turntableVinylDisc" class="turntable-vinyl">
-              <div class="vinyl-grooves-layer"></div>
-              <div class="turntable-center-label">
-                <span class="center-rpm">33 ⅓</span>
-                <span style="font-size:0.5rem; font-weight:700;">STEREO</span>
-                <div class="center-hole"></div>
-              </div>
-            </div>
-          </div>
-
-          <div class="turntable-controls">
-            <button type="button" id="btnToggleSpin" class="btn-spin-toggle">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-              <span>Hacer girar vinilo (33⅓ RPM)</span>
-            </button>
-          </div>
+        <!-- Galería de fotos del producto -->
+        <div class="product-gallery" id="productGallery">
+          <img id="modalCoverImg" src="" alt="Foto del producto">
+          <button type="button" id="galleryPrev" class="gallery-nav gallery-prev" aria-label="Foto anterior">‹</button>
+          <button type="button" id="galleryNext" class="gallery-nav gallery-next" aria-label="Foto siguiente">›</button>
+          <span id="galleryCounter" class="gallery-counter" aria-live="polite"></span>
+          <div id="galleryThumbnails" class="gallery-thumbnails" aria-label="Fotos del producto"></div>
         </div>
 
         <!-- Columna Derecha: Ficha Técnica y Acciones -->
@@ -187,30 +150,6 @@
             <div class="detail-total-price">
               <span>Total (IVA 19%)</span>
               <strong id="modalDetailTotal">$0</strong>
-            </div>
-          </div>
-
-          <!-- Especificaciones Técnicas para Coleccionistas -->
-          <div class="specs-grid">
-            <div class="spec-item">
-              <span class="spec-label">Año de Prensado</span>
-              <div id="modalSpecYear" class="spec-val">-</div>
-            </div>
-            <div class="spec-item">
-              <span class="spec-label">Sello Discográfico</span>
-              <div id="modalSpecLabel" class="spec-val">-</div>
-            </div>
-            <div class="spec-item">
-              <span class="spec-label">Nº de Catálogo</span>
-              <div id="modalSpecCat" class="spec-val">-</div>
-            </div>
-            <div class="spec-item">
-              <span class="spec-label">Gramaje / Peso</span>
-              <div id="modalSpecWeight" class="spec-val">180g</div>
-            </div>
-            <div class="spec-item">
-              <span class="spec-label">Velocidad</span>
-              <div id="modalSpecRpm" class="spec-val">33 ⅓ RPM</div>
             </div>
           </div>
 

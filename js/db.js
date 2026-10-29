@@ -65,6 +65,28 @@ function parseSheetPrice(value, rowNumber) {
   return price;
 }
 
+function parseSheetTracklist(value) {
+  return value
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(line => line && !/^SIDE\s+[A-Z]\s*:?$/i.test(line))
+    .map((line, index) => {
+      const numberedTrack = line.match(/^([A-Z])\s*(\d+)\s*[-.)]?\s*(.+)$/i);
+      if (numberedTrack) {
+        const [, side, number, rawTitle] = numberedTrack;
+        const durationMatch = rawTitle.match(/\s+(\d{1,2}:\d{2})$/);
+        const title = durationMatch ? rawTitle.slice(0, durationMatch.index).trim() : rawTitle.trim();
+        return { side: side.toUpperCase(), number: Number(number), title, duration: durationMatch?.[1] || '' };
+      }
+
+      const plainTrack = line.match(/^(\d+)\s*[.)-]?\s+(.+)$/);
+      if (plainTrack) {
+        return { side: '', number: Number(plainTrack[1]), title: plainTrack[2].trim(), duration: '' };
+      }
+      return { side: '', number: index + 1, title: line, duration: '' };
+    });
+}
+
 function parseSheetProducts(csv) {
   const rows = parseSheetCsv(csv);
   if (rows.length < 2) throw new Error('La hoja no contiene productos para sincronizar.');
@@ -74,7 +96,8 @@ function parseSheetProducts(csv) {
     product: headers.findIndex(header => ['PRODUCTO', 'PRODUCT', 'TITULO'].includes(header)),
     sku: headers.findIndex(header => ['SKU', 'CODIGO', 'CODIGOPRODUCTO'].includes(header)),
     image: headers.findIndex(header => ['IMAGEN', 'IMAGENES', 'IMAGE', 'IMAGES'].includes(header)),
-    price: headers.findIndex(header => ['PRECIO', 'PRICE'].includes(header))
+    price: headers.findIndex(header => ['PRECIO', 'PRICE'].includes(header)),
+    tracklist: headers.findIndex(header => header === 'TRACKLIST' || header === 'PISTAS')
   };
   if (columns.product < 0 || columns.sku < 0 || columns.price < 0) {
     throw new Error('La hoja debe tener encabezados PRODUCTO, SKU y PRECIO.');
@@ -98,7 +121,8 @@ function parseSheetProducts(csv) {
         name: productName,
         sku,
         price: parseSheetPrice(priceValue, rowNumber),
-        images: []
+        images: [],
+        tracklist: []
       };
       const existing = products.get(sku);
       if (existing && existing.name !== productName) {
@@ -119,6 +143,10 @@ function parseSheetProducts(csv) {
         throw new Error(`La imagen de la fila ${rowNumber} debe ser una URL http o https.`);
       }
       currentProduct.images.push(image);
+    }
+    const tracklist = columns.tracklist >= 0 ? (cells[columns.tracklist] || '').trim() : '';
+    if (tracklist && currentProduct) {
+      currentProduct.tracklist.push(...parseSheetTracklist(tracklist));
     }
   });
 
@@ -734,7 +762,7 @@ class VinylStorage {
         coverImage,
         images: product.images,
         description: existing?.description || `SKU: ${product.sku}`,
-        tracklist: existing?.tracklist || []
+        tracklist: product.tracklist
       };
     });
 

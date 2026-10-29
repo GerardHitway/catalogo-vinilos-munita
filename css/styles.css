@@ -325,68 +325,6 @@ body {
 }
 
 /* ==========================================================================
-   BARRA DE GÉNEROS (SWIPE HORIZONTAL PARA TABLETS)
-   ========================================================================== */
-.genre-bar-section {
-  max-width: 1400px;
-  width: 100%;
-  margin: 16px auto 0;
-  padding: 0 24px;
-}
-
-.genre-scroll-container {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  overflow-x: auto;
-  scroll-behavior: smooth;
-  -webkit-overflow-scrolling: touch;
-  padding-bottom: 8px;
-  scrollbar-width: none;
-}
-.genre-scroll-container::-webkit-scrollbar {
-  display: none;
-}
-
-.genre-pill {
-  flex-shrink: 0;
-  min-height: 42px;
-  padding: 0 18px;
-  border-radius: var(--radius-full);
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  color: var(--text-secondary);
-  font-size: 0.88rem;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: all 0.2s ease;
-  user-select: none;
-}
-
-.genre-pill .genre-count {
-  font-size: 0.72rem;
-  background: rgba(255, 255, 255, 0.08);
-  padding: 2px 7px;
-  border-radius: var(--radius-full);
-  color: var(--text-muted);
-}
-
-.genre-pill.active {
-  background: var(--accent-gold);
-  color: #0c0d12;
-  border-color: var(--accent-gold);
-  box-shadow: 0 4px 14px var(--accent-gold-glow);
-}
-
-.genre-pill.active .genre-count {
-  background: rgba(0, 0, 0, 0.2);
-  color: #0c0d12;
-}
-
-/* ==========================================================================
    BARRA DE FILTROS Y ORDENAMIENTO
    ========================================================================== */
 .controls-bar {
@@ -617,9 +555,17 @@ body {
   font-weight: 600;
 }
 
-.card-year {
-  color: var(--text-muted);
-  font-weight: 500;
+.card-image-count {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  z-index: 3;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  background: rgba(12, 13, 18, 0.85);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
 }
 
 .card-title {
@@ -857,136 +803,89 @@ body {
   }
 }
 
-/* Columna izquierda: Tocadiscos interactivo y funda de vinilo */
-.turntable-showcase {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 20px;
-}
-
-.turntable-wrapper {
+/* Galería de fotos del producto */
+.product-gallery {
   position: relative;
+  align-self: start;
   width: 100%;
-  max-width: 380px;
-  aspect-ratio: 1 / 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.turntable-sleeve {
-  position: absolute;
-  left: 0;
-  width: 75%;
-  height: 75%;
-  border-radius: var(--radius-md);
   overflow: hidden;
-  box-shadow: 0 16px 35px rgba(0, 0, 0, 0.8);
-  z-index: 2;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: #000;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: #08090d;
 }
 
-.turntable-sleeve img {
+.product-gallery > img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+}
+
+.gallery-nav {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  background: rgba(12, 13, 18, 0.78);
+  color: #fff;
+  font-size: 2rem;
+  line-height: 1;
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.gallery-nav[hidden],
+.gallery-thumbnails[hidden] {
+  display: none;
+}
+
+.gallery-prev { left: 12px; }
+.gallery-next { right: 12px; }
+
+.gallery-counter {
+  position: absolute;
+  right: 12px;
+  bottom: 86px;
+  z-index: 2;
+  padding: 4px 9px;
+  border-radius: var(--radius-full);
+  background: rgba(12, 13, 18, 0.82);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.gallery-thumbnails {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 10px;
+  scrollbar-width: thin;
+}
+
+.gallery-thumbnail {
+  flex: 0 0 64px;
+  width: 64px;
+  height: 64px;
+  padding: 0;
+  overflow: hidden;
+  border: 2px solid transparent;
+  border-radius: var(--radius-sm);
+  background: #11131a;
+  cursor: pointer;
+}
+
+.gallery-thumbnail.active {
+  border-color: var(--accent-gold);
+}
+
+.gallery-thumbnail img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  display: block;
-}
-
-.turntable-vinyl {
-  position: absolute;
-  right: 0;
-  width: 75%;
-  height: 75%;
-  border-radius: 50%;
-  background: radial-gradient(circle, #252837 0%, #151722 35%, #08090d 100%);
-  border: 2px solid #33384a;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.9);
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.5s ease;
-}
-
-/* Grooves concéntricos del vinilo */
-.vinyl-grooves-layer {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: repeating-radial-gradient(
-    circle at 50% 50%,
-    transparent 0,
-    transparent 2px,
-    rgba(255, 255, 255, 0.03) 2.5px,
-    transparent 3px
-  );
-  pointer-events: none;
-}
-
-.turntable-vinyl.spinning {
-  animation: spinVinyl 3.6s linear infinite;
-}
-
-.turntable-center-label {
-  position: relative;
-  width: 35%;
-  height: 35%;
-  border-radius: 50%;
-  background: radial-gradient(circle, var(--accent-gold-hover) 0%, var(--accent-gold) 70%, #b87514 100%);
-  border: 2px solid #3c2405;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  color: #1a0e02;
-  padding: 4px;
-  text-align: center;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-}
-
-.turntable-center-label .center-hole {
-  width: 10px;
-  height: 10px;
-  background: #0c0d12;
-  border-radius: 50%;
-  margin-top: 2px;
-}
-
-.turntable-center-label .center-rpm {
-  font-size: 0.65rem;
-  font-weight: 800;
-  letter-spacing: 0.5px;
-}
-
-.turntable-controls {
-  display: flex;
-  gap: 12px;
-  width: 100%;
-  justify-content: center;
-}
-
-.btn-spin-toggle {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
-  border-radius: var(--radius-full);
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid var(--border-subtle);
-  color: #fff;
-  font-size: 0.88rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btn-spin-toggle.playing {
-  background: var(--accent-gold);
-  color: #0c0d12;
-  border-color: var(--accent-gold);
 }
 
 /* Columna derecha: Detalles técnicos, tracklist y acciones */
@@ -1061,34 +960,6 @@ body {
   font-size: 2rem;
   font-weight: 800;
   color: #fff;
-}
-
-/* Rejilla de especificaciones para coleccionistas */
-.specs-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-}
-
-.spec-item {
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid var(--border-subtle);
-  padding: 8px 12px;
-  border-radius: var(--radius-sm);
-}
-
-.spec-label {
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  font-weight: 600;
-}
-
-.spec-val {
-  font-size: 0.88rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-top: 2px;
 }
 
 /* Tracklist */
@@ -1483,16 +1354,6 @@ body {
 /* ==========================================================================
    ANIMACIONES
    ========================================================================== */
-@keyframes spinSlow {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-@keyframes spinVinyl {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
 @keyframes slideUpToast {
   from {
     opacity: 0;

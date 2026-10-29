@@ -17,13 +17,13 @@ class VinylApp {
     this.vinyls = [];
     this.filteredVinyls = [];
     this.settings = {};
-    this.currentGenre = 'all';
     this.searchQuery = '';
-    this.sortBy = 'featured';
-    this.filterFormat = 'all';
+    this.sortBy = 'artist-az';
     this.viewMode = 'grid'; // 'grid' | 'list'
     this.currentDetailVinylId = null;
-    this.isVinylSpinning = false;
+    this.detailImages = [];
+    this.currentImageIndex = 0;
+    this.galleryTouchStartX = null;
     this.isSheetSyncing = false;
   }
 
@@ -63,7 +63,6 @@ class VinylApp {
   async loadAndRender() {
     this.vinyls = (await DB.getAllVinyls()).filter(vinyl => vinyl.sku);
     this.updateStats();
-    this.renderGenrePills();
     this.applyFilters();
   }
 
@@ -100,98 +99,39 @@ class VinylApp {
   // ==========================================================================
   // FILTRADO Y BÚSQUEDA
   // ==========================================================================
-  renderGenrePills() {
-    const container = document.getElementById('genreScrollContainer');
-    if (!container) return;
-
-    // Calcular géneros únicos y su conteo
-    const genreCounts = {};
-    this.vinyls.forEach(v => {
-      const g = v.genre || 'Otros';
-      genreCounts[g] = (genreCounts[g] || 0) + 1;
-    });
-
-    const genres = Object.keys(genreCounts).sort();
-
-    let html = `
-      <button type="button" class="genre-pill ${this.currentGenre === 'all' ? 'active' : ''}" data-genre="all">
-        <span>Todos los Vinilos</span>
-        <span class="genre-count">${this.vinyls.length}</span>
-      </button>
-    `;
-
-    genres.forEach(genre => {
-      const count = genreCounts[genre];
-      const isActive = this.currentGenre.toLowerCase() === genre.toLowerCase();
-      html += `
-        <button type="button" class="genre-pill ${isActive ? 'active' : ''}" data-genre="${genre}">
-          <span>${genre}</span>
-          <span class="genre-count">${count}</span>
-        </button>
-      `;
-    });
-
-    container.innerHTML = html;
-
-    // Eventos táctiles para las píldoras de género
-    container.querySelectorAll('.genre-pill').forEach(btn => {
-      btn.addEventListener('click', () => {
-        this.currentGenre = btn.dataset.genre;
-        this.renderGenrePills();
-        this.applyFilters();
-      });
-    });
-  }
-
   applyFilters() {
     let result = [...this.vinyls];
 
-    // Filtro por género
-    if (this.currentGenre !== 'all') {
-      result = result.filter(v => (v.genre || '').toLowerCase() === this.currentGenre.toLowerCase());
-    }
-
-    // Filtro por búsqueda
     if (this.searchQuery.trim()) {
       const q = this.searchQuery.toLowerCase().trim();
       result = result.filter(v => {
         const title = (v.title || '').toLowerCase();
         const artist = (v.artist || '').toLowerCase();
-        const label = (v.label || '').toLowerCase();
-        const year = String(v.year || '');
-        const desc = (v.description || '').toLowerCase();
-        return title.includes(q) || artist.includes(q) || label.includes(q) || year.includes(q) || desc.includes(q);
+        return title.includes(q) || artist.includes(q);
       });
     }
 
-    // Filtro por formato
-    if (this.filterFormat !== 'all') {
-      result = result.filter(v => (v.format || '').toLowerCase().includes(this.filterFormat.toLowerCase()));
-    }
-
-    // Ordenamiento
+    const comparePrice = (a, b, direction = 1) => {
+      const hasPriceA = a.price !== null && a.price !== undefined && String(a.price).trim() !== '' && Number.isFinite(Number(a.price));
+      const hasPriceB = b.price !== null && b.price !== undefined && String(b.price).trim() !== '' && Number.isFinite(Number(b.price));
+      if (!hasPriceA && !hasPriceB) return 0;
+      if (!hasPriceA) return 1;
+      if (!hasPriceB) return -1;
+      return direction * (Number(a.price) - Number(b.price));
+    };
     switch (this.sortBy) {
       case 'price-low':
-        result.sort((a, b) => a.price - b.price);
+        result.sort(comparePrice);
         break;
       case 'price-high':
-        result.sort((a, b) => b.price - a.price);
-        break;
-      case 'year-new':
-        result.sort((a, b) => b.year - a.year);
-        break;
-      case 'year-old':
-        result.sort((a, b) => a.year - b.year);
+        result.sort((a, b) => comparePrice(a, b, -1));
         break;
       case 'artist-az':
-        result.sort((a, b) => (a.artist || '').localeCompare(b.artist || ''));
+        result.sort((a, b) => (a.artist || '').localeCompare(b.artist || '', 'es', { sensitivity: 'base' }));
         break;
-      case 'title-az':
-        result.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
-        break;
-      case 'featured':
       default:
-        result.sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
+        this.sortBy = 'artist-az';
+        result.sort((a, b) => (a.artist || '').localeCompare(b.artist || '', 'es', { sensitivity: 'base' }));
         break;
     }
 
@@ -233,6 +173,7 @@ class VinylApp {
       const safeTitle = escapeHtml(vinyl.title);
       const safeArtist = escapeHtml(vinyl.artist);
       const safeCover = escapeHtml(coverSrc);
+      const imageCount = this.getProductImages(vinyl).length;
 
       return `
         <article class="vinyl-card" data-id="${safeId}">
@@ -242,13 +183,13 @@ class VinylApp {
               <img src="${safeCover}" alt="${safeTitle}" class="card-cover-img" loading="lazy" onerror="this.onerror=null;this.src='./assets/icon-192.svg'">
               <span class="card-badge-format">${escapeHtml(vinyl.format || '12" LP')}</span>
               <span class="card-badge-condition">${escapeHtml(vinyl.condition || 'M')}</span>
+              ${imageCount > 1 ? `<span class="card-image-count">${imageCount} fotos</span>` : ''}
             </div>
           </div>
 
           <div class="card-info">
             <div class="card-genre-row">
               <span>${escapeHtml(vinyl.genre || 'Música')}</span>
-              <span class="card-year">${escapeHtml(vinyl.year || '')}</span>
             </div>
             
             <div class="card-title-group">
@@ -276,8 +217,46 @@ class VinylApp {
     });
   }
 
+  getProductImages(vinyl) {
+    const images = Array.isArray(vinyl.images) ? vinyl.images : [];
+    return [...new Set([...images, vinyl.coverImage].filter(image => typeof image === 'string' && image.trim()))];
+  }
+
+  updateDetailGallery() {
+    const imageEl = document.getElementById('modalCoverImg');
+    const counterEl = document.getElementById('galleryCounter');
+    const thumbnailsEl = document.getElementById('galleryThumbnails');
+    const previousButton = document.getElementById('galleryPrev');
+    const nextButton = document.getElementById('galleryNext');
+    if (!imageEl || !this.detailImages.length) return;
+
+    imageEl.src = this.detailImages[this.currentImageIndex];
+    imageEl.alt = `${document.getElementById('modalDetailTitle').textContent} - Foto ${this.currentImageIndex + 1}`;
+    imageEl.onerror = () => {
+      imageEl.onerror = null;
+      imageEl.src = './assets/icon-192.svg';
+    };
+    counterEl.textContent = `${this.currentImageIndex + 1} / ${this.detailImages.length}`;
+    previousButton.hidden = this.detailImages.length < 2;
+    nextButton.hidden = this.detailImages.length < 2;
+    thumbnailsEl.hidden = this.detailImages.length < 2;
+    thumbnailsEl.innerHTML = this.detailImages.map((image, index) => `
+      <button type="button" class="gallery-thumbnail ${index === this.currentImageIndex ? 'active' : ''}"
+        data-gallery-index="${index}" aria-label="Mostrar foto ${index + 1}"
+        aria-current="${index === this.currentImageIndex ? 'true' : 'false'}">
+        <img src="${escapeHtml(image)}" alt="" loading="lazy">
+      </button>
+    `).join('');
+  }
+
+  changeDetailImage(direction) {
+    if (this.detailImages.length < 2) return;
+    this.currentImageIndex = (this.currentImageIndex + direction + this.detailImages.length) % this.detailImages.length;
+    this.updateDetailGallery();
+  }
+
   // ==========================================================================
-  // MODAL INTERACTIVO DE DETALLES Y TOCADISCOS
+  // DETALLES DEL PRODUCTO
   // ==========================================================================
   async openVinylDetail(id) {
     this.currentDetailVinylId = id;
@@ -287,12 +266,13 @@ class VinylApp {
     const modal = document.getElementById('detailModalBackdrop');
     const currency = this.settings.currency || '$';
 
-    document.getElementById('modalCoverImg').src = vinyl.coverImage || generateVinylSvgCover(vinyl.title, vinyl.artist, vinyl.genre);
-    document.getElementById('modalCoverImg').onerror = () => {
-      document.getElementById('modalCoverImg').src = generateVinylSvgCover(vinyl.title, vinyl.artist, vinyl.genre);
-    };
-
     document.getElementById('modalDetailTitle').textContent = vinyl.title;
+    this.detailImages = this.getProductImages(vinyl);
+    if (!this.detailImages.length) {
+      this.detailImages = [generateVinylSvgCover(vinyl.title, vinyl.artist, vinyl.genre)];
+    }
+    this.currentImageIndex = 0;
+    this.updateDetailGallery();
     document.getElementById('modalDetailArtist').textContent = vinyl.artist;
     document.getElementById('modalDetailGenre').textContent = vinyl.genre;
     document.getElementById('modalDetailFormatBadge').textContent = vinyl.format || '12" LP';
@@ -303,39 +283,21 @@ class VinylApp {
       currency
     );
 
-    // Especificaciones
-    document.getElementById('modalSpecYear').textContent = vinyl.year || '-';
-    document.getElementById('modalSpecLabel').textContent = vinyl.label || '-';
-    document.getElementById('modalSpecCat').textContent = vinyl.catalogNumber || '-';
-    document.getElementById('modalSpecWeight').textContent = vinyl.weight || '180g';
-    document.getElementById('modalSpecRpm').textContent = vinyl.rpm || '33 ⅓ RPM';
-    // Descripción
     document.getElementById('modalDetailDesc').textContent = vinyl.description || 'Sin reseña adicional para esta edición.';
 
-    // Tracklist
     const tracklistEl = document.getElementById('modalTracklist');
     if (vinyl.tracklist && vinyl.tracklist.length > 0) {
       tracklistEl.innerHTML = vinyl.tracklist.map((track, idx) => `
         <li class="track-item">
           <div>
-            <span class="track-number">${track.side ? track.side + (idx + 1) : idx + 1}.</span>
-            <span>${track.title}</span>
+            <span class="track-number">${escapeHtml(track.side ? `${track.side}${track.number || idx + 1}` : `${track.number || idx + 1}`)}.</span>
+            <span>${escapeHtml(track.title)}</span>
           </div>
-          <span>${track.duration || ''}</span>
+          <span>${escapeHtml(track.duration || '')}</span>
         </li>
       `).join('');
     } else {
       tracklistEl.innerHTML = `<li class="track-item" style="color:var(--text-muted);">Tracklist no registrado para esta edición</li>`;
-    }
-
-    // Reset turntable spinning
-    this.isVinylSpinning = false;
-    const vinylDiscEl = document.getElementById('turntableVinylDisc');
-    const spinBtn = document.getElementById('btnToggleSpin');
-    if (vinylDiscEl) vinylDiscEl.classList.remove('spinning');
-    if (spinBtn) {
-      spinBtn.classList.remove('playing');
-      spinBtn.innerHTML = `${ICONS.play} <span>Hacer girar vinilo (33⅓ RPM)</span>`;
     }
 
     modal.classList.add('open');
@@ -348,7 +310,7 @@ class VinylApp {
       modal.classList.remove('open');
     }
     document.body.style.overflow = '';
-    this.isVinylSpinning = false;
+    this.detailImages = [];
   }
 
   formatPrice(price, currency = this.settings.currency || '$') {
@@ -366,24 +328,6 @@ class VinylApp {
       <span class="price-base">${escapeHtml(basePrice)}</span>
       <span class="price-total-label">Total (IVA 19%)</span>
       <span class="price-total">${escapeHtml(totalPrice)}</span>`;
-  }
-
-  toggleVinylSpin() {
-    const vinylDiscEl = document.getElementById('turntableVinylDisc');
-    const spinBtn = document.getElementById('btnToggleSpin');
-    this.isVinylSpinning = !this.isVinylSpinning;
-
-    if (this.isVinylSpinning) {
-      vinylDiscEl.classList.add('spinning');
-      spinBtn.classList.add('playing');
-      spinBtn.innerHTML = `${ICONS.pause} <span>Detener giro</span>`;
-      // Feedback sutil táctil
-      if ('vibrate' in navigator) navigator.vibrate(20);
-    } else {
-      vinylDiscEl.classList.remove('spinning');
-      spinBtn.classList.remove('playing');
-      spinBtn.innerHTML = `${ICONS.play} <span>Hacer girar vinilo (33⅓ RPM)</span>`;
-    }
   }
 
   // ==========================================================================
@@ -426,15 +370,6 @@ class VinylApp {
       });
     }
 
-    // Selector de formato
-    const formatSelect = document.getElementById('formatFilterSelect');
-    if (formatSelect) {
-      formatSelect.addEventListener('change', (e) => {
-        this.filterFormat = e.target.value;
-        this.applyFilters();
-      });
-    }
-
     // Vistas Cuadrícula / Lista
     const btnViewGrid = document.getElementById('btnViewGrid');
     const btnViewList = document.getElementById('btnViewList');
@@ -465,10 +400,26 @@ class VinylApp {
       });
     }
 
-    // Botón de giro del vinilo
-    const btnToggleSpin = document.getElementById('btnToggleSpin');
-    if (btnToggleSpin) {
-      btnToggleSpin.addEventListener('click', () => this.toggleVinylSpin());
+    document.getElementById('galleryPrev')?.addEventListener('click', () => this.changeDetailImage(-1));
+    document.getElementById('galleryNext')?.addEventListener('click', () => this.changeDetailImage(1));
+    document.getElementById('galleryThumbnails')?.addEventListener('click', event => {
+      const button = event.target instanceof Element ? event.target.closest('[data-gallery-index]') : null;
+      if (!button) return;
+      this.currentImageIndex = Number(button.dataset.galleryIndex);
+      this.updateDetailGallery();
+    });
+
+    const productGallery = document.getElementById('productGallery');
+    if (productGallery) {
+      productGallery.addEventListener('touchstart', event => {
+        this.galleryTouchStartX = event.changedTouches[0].clientX;
+      }, { passive: true });
+      productGallery.addEventListener('touchend', event => {
+        if (this.galleryTouchStartX === null) return;
+        const distance = event.changedTouches[0].clientX - this.galleryTouchStartX;
+        this.galleryTouchStartX = null;
+        if (Math.abs(distance) > 50) this.changeDetailImage(distance < 0 ? 1 : -1);
+      }, { passive: true });
     }
   }
 }

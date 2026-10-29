@@ -16,11 +16,11 @@ Hitway Music & Books es un catálogo interactivo de solo lectura. Los productos,
 ---
 
 ### 📱 Experiencia Diseñada para Tablets
-- **Layout Táctil Ergonómico:** Botones táctiles amplios (mínimo 48px), swipe horizontal de géneros musicales y tarjetas tipo funda de vinilo de 12 pulgadas.
-- **Tocadiscos Interactivo:** Al pulsar sobre cualquier vinilo se desliza el disco fuera de la funda con animación 3D y permite simular el giro a 33 ⅓ RPM con surcos concéntricos.
+- **Galería de fotos:** Cada producto puede tener varias imágenes, navegables desde su ficha.
 - **Modo de solo lectura:** Los clientes pueden explorar el catálogo, pero no agregar, editar ni borrar productos desde la aplicación.
 - **PWA (Progressive Web App):** Instalable en la pantalla de inicio del iPad o Android para ejecutarse a pantalla completa (Fullscreen Kiosk Mode) sin barras del navegador.
-- **Filtros y Búsqueda Instantánea:** Búsqueda en tiempo real por título, artista o sello; filtrado por género y formato (12" LP, 2xLP, Gatefold, 180g).
+- **Búsqueda y orden:** Búsqueda por producto o artista y orden por precio ascendente/descendente o artista A-Z.
+- **Tracklist:** Las canciones se muestran desde la columna `TRACKLIST` de la hoja.
 - **Precios con IVA:** Se muestra el precio antes de IVA y debajo el total calculado con IVA chileno del 19%.
 
 ---
@@ -69,12 +69,13 @@ El catálogo es de solo lectura. Administra productos, precios e imágenes direc
 
 ### Sincronizar productos desde Google Sheets
 
-- En la hoja, usa los encabezados `PRODUCTO`, `SKU`, `IMAGENES` y `PRECIO`.
+- En la hoja, usa los encabezados `PRODUCTO`, `SKU`, `IMAGENES`, `PRECIO` y `TRACKLIST`.
 - Comparte la hoja como **Cualquier persona con el enlace → Lector** para que el catálogo pueda leerla sin iniciar sesión.
 - La aplicación utiliza la hoja configurada para la sincronización automática.
 - La sincronización también se ejecuta al abrir el catálogo y cada 5 minutos mientras está abierto. Solo se muestran los productos de la hoja; los que se quiten de ella desaparecerán del catálogo.
 - Para un producto con varias imágenes, coloca cada URL en una fila. En las filas de imágenes adicionales, deja `PRODUCTO` y `SKU` vacíos. La primera imagen se usa como portada.
 - El `SKU` identifica el producto y la columna `PRECIO` actualiza su precio.
+- El tracklist se toma de la celda `TRACKLIST`; se admiten pistas multilínea con numeración de lado (por ejemplo, `A1 Título 3:28`).
 - Si un producto no tiene precio, igualmente aparecerá y mostrará **Consultar precio** hasta que completes la celda.
 
 ---

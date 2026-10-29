@@ -2,7 +2,7 @@
 // HITWAY MUSIC & BOOKS - SERVICE WORKER PARA TABLET PWA (OFFLINE FIRST)
 // ==========================================================================
 
-const CACHE_NAME = 'hitway-music-books-v8';
+const CACHE_NAME = 'hitway-music-books-v9';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
