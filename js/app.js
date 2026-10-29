@@ -93,7 +93,13 @@ function createXlsxBlob(files) {
   });
 }
 
-function buildQuoteWorkbook(cartRows) {
+function normalizeCartDiscountPercent(value) {
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) ? Math.min(10, Math.max(0, numericValue)) : 0;
+}
+
+function calculateQuoteTotals(cartRows, discountPercent = 0) {
+  const appliedDiscountPercent = normalizeCartDiscountPercent(discountPercent);
   const hasMissingPrices = cartRows.some(({ vinyl }) =>
     vinyl.price === null || vinyl.price === undefined || !Number.isFinite(Number(vinyl.price))
   );
@@ -105,6 +111,23 @@ function buildQuoteWorkbook(cartRows) {
     (sum, { vinyl, quantity }) => sum + Math.round(Number(vinyl.price) * 1.19) * quantity,
     0
   );
+  const discount = Math.round(subtotal * appliedDiscountPercent / 100);
+  const discountedSubtotal = subtotal - discount;
+  const discountedTotal = Math.round(totalWithTax * (100 - appliedDiscountPercent) / 100);
+
+  return {
+    hasMissingPrices,
+    discountPercent: appliedDiscountPercent,
+    subtotal,
+    discount,
+    discountedSubtotal,
+    discountedTotal
+  };
+}
+
+function buildQuoteWorkbook(cartRows, discountPercent = 0) {
+  const totals = calculateQuoteTotals(cartRows, discountPercent);
+  const discountLabel = totals.discountPercent.toLocaleString('es-CL');
   const worksheetRows = [
     ['Cotización - Hitway Music & Books'],
     ['Fecha', new Date().toLocaleDateString('es-CL')],
@@ -125,9 +148,11 @@ function buildQuoteWorkbook(cartRows) {
   });
 
   worksheetRows.push([]);
-  worksheetRows.push(['', '', '', '', '', 'Subtotal', hasMissingPrices ? 'Pendiente' : subtotal]);
-  worksheetRows.push(['', '', '', '', '', 'IVA (19%)', hasMissingPrices ? 'Pendiente' : totalWithTax - subtotal]);
-  worksheetRows.push(['', '', '', '', '', 'Total con IVA', hasMissingPrices ? 'Pendiente' : totalWithTax]);
+  worksheetRows.push(['', '', '', '', '', 'Subtotal', totals.hasMissingPrices ? 'Pendiente' : totals.subtotal]);
+  worksheetRows.push(['', '', '', '', '', `Descuento (${discountLabel}%)`, totals.hasMissingPrices ? 'Pendiente' : -totals.discount]);
+  worksheetRows.push(['', '', '', '', '', 'Subtotal con descuento', totals.hasMissingPrices ? 'Pendiente' : totals.discountedSubtotal]);
+  worksheetRows.push(['', '', '', '', '', 'IVA (19%)', totals.hasMissingPrices ? 'Pendiente' : totals.discountedTotal - totals.discountedSubtotal]);
+  worksheetRows.push(['', '', '', '', '', 'Total con IVA', totals.hasMissingPrices ? 'Pendiente' : totals.discountedTotal]);
   const columnName = index => {
     let name = '';
     for (let number = index + 1; number > 0; number = Math.floor((number - 1) / 26)) {
@@ -169,6 +194,7 @@ class VinylApp {
     this.galleryTouchStartX = null;
     this.isSheetSyncing = false;
     this.cart = [];
+    this.discountPercent = 0;
   }
 
   async init() {
@@ -455,9 +481,13 @@ class VinylApp {
     const subtotalEl = document.getElementById('cartSubtotal');
     const totalEl = document.getElementById('cartTotal');
     const noticeEl = document.getElementById('cartPriceNotice');
+    const discountInput = document.getElementById('cartDiscountPercent');
+    const discountSummary = document.getElementById('cartDiscountSummary');
+    const discountLabel = document.getElementById('cartDiscountLabel');
+    const discountAmount = document.getElementById('cartDiscountAmount');
     const exportButton = document.getElementById('btnExportQuote');
     const clearButton = document.getElementById('btnClearCart');
-    if (!countEl || !listEl || !subtotalEl || !totalEl || !noticeEl || !exportButton || !clearButton) return;
+    if (!countEl || !listEl || !subtotalEl || !totalEl || !noticeEl || !discountInput || !discountSummary || !discountLabel || !discountAmount || !exportButton || !clearButton) return;
 
     this.updateCartButtons();
     const rows = this.getCartRows();
@@ -466,25 +496,21 @@ class VinylApp {
     countEl.setAttribute('aria-label', `${count} unidades`);
     exportButton.disabled = rows.length === 0;
     clearButton.disabled = rows.length === 0;
+    discountInput.disabled = rows.length === 0;
+    discountInput.value = String(this.discountPercent);
 
     if (!rows.length) {
       listEl.innerHTML = '<p class="cart-empty">Aún no has agregado productos.</p>';
       subtotalEl.textContent = this.formatPrice(0);
       totalEl.textContent = this.formatPrice(0);
+      discountSummary.hidden = true;
+      discountLabel.textContent = `${this.discountPercent}%`;
+      discountAmount.textContent = `-${this.formatPrice(0)}`;
       noticeEl.hidden = true;
       return;
     }
 
-    let hasMissingPrices = false;
-    const totals = rows.reduce((amounts, { vinyl, quantity }) => {
-      const hasPrice = vinyl.price !== null && vinyl.price !== undefined && Number.isFinite(Number(vinyl.price));
-      if (!hasPrice) hasMissingPrices = true;
-      else {
-        amounts.subtotal += Number(vinyl.price) * quantity;
-        amounts.total += Math.round(Number(vinyl.price) * 1.19) * quantity;
-      }
-      return amounts;
-    }, { subtotal: 0, total: 0 });
+    const totals = calculateQuoteTotals(rows, this.discountPercent);
 
     listEl.innerHTML = rows.map(({ vinyl, quantity }) => `
       <article class="cart-row" data-cart-id="${escapeHtml(vinyl.id)}">
@@ -501,9 +527,34 @@ class VinylApp {
         </div>
       </article>
     `).join('');
-    subtotalEl.textContent = this.formatPrice(totals.subtotal);
-    totalEl.textContent = this.formatPrice(totals.total);
-    noticeEl.hidden = !hasMissingPrices;
+    subtotalEl.textContent = this.formatPrice(totals.discountedSubtotal);
+    totalEl.textContent = this.formatPrice(totals.discountedTotal);
+    discountLabel.textContent = `${Number(this.discountPercent).toLocaleString('es-CL')}%`;
+    discountAmount.textContent = `-${this.formatPrice(totals.discount)}`;
+    discountSummary.hidden = totals.discount === 0;
+    noticeEl.hidden = !totals.hasMissingPrices;
+  }
+
+  setCartDiscount(value) {
+    const numericValue = Number(value);
+    const exceededLimit = Number.isFinite(numericValue) && numericValue > 10;
+    this.discountPercent = normalizeCartDiscountPercent(value);
+    const discountInput = document.getElementById('cartDiscountPercent');
+    const limitNotice = document.getElementById('cartDiscountLimitNotice');
+    if (discountInput && exceededLimit) discountInput.value = String(this.discountPercent);
+    if (limitNotice) limitNotice.hidden = !exceededLimit;
+    const rows = this.getCartRows();
+    const totals = calculateQuoteTotals(rows, this.discountPercent);
+    const discountLabel = document.getElementById('cartDiscountLabel');
+    const discountSummary = document.getElementById('cartDiscountSummary');
+    const discountAmount = document.getElementById('cartDiscountAmount');
+    const subtotalEl = document.getElementById('cartSubtotal');
+    const totalEl = document.getElementById('cartTotal');
+    if (subtotalEl) subtotalEl.textContent = this.formatPrice(totals.discountedSubtotal);
+    if (totalEl) totalEl.textContent = this.formatPrice(totals.discountedTotal);
+    if (discountLabel) discountLabel.textContent = `${Number(this.discountPercent).toLocaleString('es-CL')}%`;
+    if (discountAmount) discountAmount.textContent = `-${this.formatPrice(totals.discount)}`;
+    if (discountSummary) discountSummary.hidden = totals.discount === 0;
   }
 
   setCartQuantity(id, quantity) {
@@ -538,7 +589,7 @@ class VinylApp {
       showToast('Agrega productos antes de generar la cotización.', 'error');
       return;
     }
-    const blob = buildQuoteWorkbook(rows);
+    const blob = buildQuoteWorkbook(rows, this.discountPercent);
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -756,7 +807,18 @@ class VinylApp {
     });
     document.getElementById('btnClearCart')?.addEventListener('click', () => {
       this.cart = [];
+      this.discountPercent = 0;
+      const limitNotice = document.getElementById('cartDiscountLimitNotice');
+      if (limitNotice) limitNotice.hidden = true;
       this.renderCart();
+    });
+    document.getElementById('cartDiscountPercent')?.addEventListener('input', event => {
+      if (!(event.target instanceof HTMLInputElement)) return;
+      this.setCartDiscount(event.target.value);
+    });
+    document.getElementById('cartDiscountPercent')?.addEventListener('change', event => {
+      if (!(event.target instanceof HTMLInputElement)) return;
+      event.target.value = String(this.discountPercent);
     });
     document.getElementById('btnExportQuote')?.addEventListener('click', () => this.exportQuote());
     document.getElementById('cartItems')?.addEventListener('click', event => {

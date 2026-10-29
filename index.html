@@ -25,7 +25,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet">
 
   <!-- Estilos -->
-  <link rel="stylesheet" href="./css/styles.css?v=12">
+  <link rel="stylesheet" href="./css/styles.css?v=13">
 </head>
 <body>
 
@@ -128,9 +128,22 @@
       </header>
       <div class="cart-modal-body">
         <div id="cartItems" class="cart-items"></div>
+        <div class="cart-discount-control">
+          <label for="cartDiscountPercent">Descuento para todo el pedido</label>
+          <div class="cart-discount-input">
+            <input type="number" id="cartDiscountPercent" min="0" max="10" step="0.01" value="0" inputmode="decimal" aria-describedby="cartDiscountHelp cartDiscountLimitNotice">
+            <span>%</span>
+          </div>
+          <p id="cartDiscountHelp">Se aplica sobre los productos que tienen precio.</p>
+          <p id="cartDiscountLimitNotice" class="cart-discount-limit-notice" role="status" hidden>El descuento máximo es 10 %. Se aplicó 10 %.</p>
+        </div>
         <div class="cart-summary">
-          <span>Total estimado sin IVA</span>
+          <span>Subtotal con descuento (sin IVA)</span>
           <strong id="cartSubtotal">$0</strong>
+        </div>
+        <div id="cartDiscountSummary" class="cart-summary cart-summary-discount" hidden>
+          <span>Descuento (<span id="cartDiscountLabel">0%</span>)</span>
+          <strong id="cartDiscountAmount">-$0</strong>
         </div>
         <div class="cart-summary">
           <span>Total estimado con IVA</span>
