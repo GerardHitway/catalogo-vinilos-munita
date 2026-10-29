@@ -1,5 +1,5 @@
 // ==========================================================================
-// RETROGROOVE - BASE DE DATOS Y PERSISTENCIA (INDEXEDDB + FALLBACK)
+// HITWAY MUSIC & BOOKS - BASE DE DATOS Y PERSISTENCIA (INDEXEDDB + FALLBACK)
 // Catálogo con productos genéricos e ilustraciones vectoriales SVG puras
 // (Sin fotos personales ni dependencias de imágenes externas)
 // ==========================================================================
@@ -55,7 +55,9 @@ function normalizeSheetHeader(value) {
 }
 
 function parseSheetPrice(value, rowNumber) {
-  const normalized = value.trim().replace(/[^\d-]/g, '');
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const normalized = trimmed.replace(/[^\d-]/g, '');
   const price = Number(normalized);
   if (!normalized || !Number.isSafeInteger(price) || price < 0) {
     throw new Error(`El precio de la fila ${rowNumber} no es válido.`);
@@ -501,11 +503,10 @@ const DEFAULT_VINYLS = [
 ];
 
 const DEFAULT_SETTINGS = {
-  storeName: "VINILOS CHILE",
-  storeSubtitle: "Catálogo de Vinilos para Tablet",
+  storeName: "Hitway",
+  storeSubtitle: "Catálogo de Música y Libros",
   currency: "$",
   currencyCode: "CLP",
-  whatsappNumber: "+56912345678",
   adminPin: "1234",
   kioskLock: false,
   sheetUrl: DEFAULT_SHEET_URL
@@ -716,6 +717,7 @@ class VinylStorage {
     const importedProducts = parseSheetProducts(csv);
     const existingVinyls = await this.getAllVinyls();
     const existingBySku = new Map(existingVinyls.map(vinyl => [String(vinyl.sku || vinyl.catalogNumber || '').trim(), vinyl]));
+    const productsWithoutPrice = importedProducts.filter(product => product.price === null).length;
     const vinyls = importedProducts.map((product, index) => {
       const existing = existingBySku.get(product.sku);
       const [artistPart, ...titleParts] = product.name.replace(/\s*\|\s*VINILO\s*$/i, '').split(/\s+-\s+/);
@@ -751,7 +753,7 @@ class VinylStorage {
     });
 
     await this.replaceVinyls(vinyls);
-    return vinyls.length;
+    return { count: vinyls.length, productsWithoutPrice };
   }
 
   async resetDefaults() {

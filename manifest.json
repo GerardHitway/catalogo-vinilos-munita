@@ -1,7 +1,7 @@
 {
-  "name": "Catálogo de Vinilos",
-  "short_name": "Vinilos",
-  "description": "Catálogo táctil interactivo para tiendas y coleccionistas de discos de vinilo.",
+  "name": "Hitway Music & Books",
+  "short_name": "Hitway Music & Books",
+  "description": "Catálogo táctil interactivo de música y libros de Hitway Music & Books.",
   "start_url": "./index.html",
   "display": "standalone",
   "orientation": "any",

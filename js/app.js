@@ -1,5 +1,5 @@
 // ==========================================================================
-// RETROGROOVE - APLICACIÓN PRINCIPAL (TABLET VINYL EXPERIENCE)
+// HITWAY MUSIC & BOOKS - APLICACIÓN PRINCIPAL
 // ==========================================================================
 
 function escapeHtml(value) {
@@ -56,8 +56,9 @@ class VinylApp {
     this.settings = settings;
     const storeTitleEl = document.getElementById('storeBrandTitle');
     const storeSubEl = document.getElementById('storeBrandSubtitle');
-    if (storeTitleEl) storeTitleEl.textContent = settings.storeName || 'RETROGROOVE';
-    if (storeSubEl) storeSubEl.textContent = settings.storeSubtitle || 'Catálogo de Vinilos';
+    if (storeTitleEl) storeTitleEl.textContent = 'Hitway Music & Books';
+    if (storeSubEl) storeSubEl.textContent = 'Catálogo de Música y Libros';
+    document.title = 'Hitway Music & Books';
   }
 
   async loadAndRender() {
@@ -73,11 +74,14 @@ class VinylApp {
     const status = document.getElementById('sheetSyncStatus');
     if (status) status.textContent = 'Sincronizando con Google Sheets…';
     try {
-      const count = await DB.syncFromGoogleSheet(sheetUrl);
+      const { count, productsWithoutPrice } = await DB.syncFromGoogleSheet(sheetUrl);
       this.settings.sheetUrl = sheetUrl;
       await this.loadAndRender();
       const syncedAt = new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
-      if (status) status.textContent = `Actualizado: ${syncedAt} · ${count} productos`;
+      const missingPriceMessage = productsWithoutPrice
+        ? ` · ${productsWithoutPrice} sin precio`
+        : '';
+      if (status) status.textContent = `Actualizado: ${syncedAt} · ${count} productos${missingPriceMessage}`;
       if (!silent) showToast(`Catálogo actualizado: ${count} productos de Google Sheets`, 'success');
       return true;
     } catch (err) {
@@ -276,7 +280,9 @@ class VinylApp {
 
             <div class="card-footer">
               <div class="card-price">
-                <span class="currency-symbol">${escapeHtml(currency)}</span>${Math.round(Number(vinyl.price) || 0).toLocaleString('es-CL')}
+                ${vinyl.price === null || vinyl.price === undefined
+                  ? '<span class="price-pending">Consultar precio</span>'
+                  : `<span class="currency-symbol">${escapeHtml(currency)}</span>${Math.round(Number(vinyl.price) || 0).toLocaleString('es-CL')}`}
               </div>
               <span class="card-stock-pill ${stockClass}">${stockLabel}</span>
             </div>
@@ -316,7 +322,9 @@ class VinylApp {
     document.getElementById('modalDetailGenre').textContent = vinyl.genre;
     document.getElementById('modalDetailFormatBadge').textContent = vinyl.format || '12" LP';
     document.getElementById('modalDetailConditionBadge').textContent = vinyl.condition || 'Mint (M)';
-    const formattedPriceCLP = `${currency}${Math.round(Number(vinyl.price) || 0).toLocaleString('es-CL')}`;
+    const formattedPriceCLP = vinyl.price === null || vinyl.price === undefined
+      ? 'Consultar precio'
+      : `${currency}${Math.round(Number(vinyl.price) || 0).toLocaleString('es-CL')}`;
     document.getElementById('modalDetailPrice').textContent = formattedPriceCLP;
 
     // Especificaciones
@@ -344,18 +352,6 @@ class VinylApp {
       `).join('');
     } else {
       tracklistEl.innerHTML = `<li class="track-item" style="color:var(--text-muted);">Tracklist no registrado para esta edición</li>`;
-    }
-
-    // Botón de WhatsApp para reservar o pedir en mostrador
-    const btnWhatsApp = document.getElementById('btnWhatsAppOrder');
-    if (btnWhatsApp) {
-      btnWhatsApp.onclick = () => {
-        const phone = (this.settings.whatsappNumber || '').replace(/[^0-9]/g, '');
-        const priceStr = `${currency}${Math.round(Number(vinyl.price) || 0).toLocaleString('es-CL')}`;
-        const msg = encodeURIComponent(`¡Hola! Estoy usando la tablet del local y me gustaría consultar / reservar este vinilo:\n\n*${vinyl.title}* - ${vinyl.artist}\nFormato: ${vinyl.format} (${vinyl.year})\nPrecio: ${priceStr} CLP\nCódigo: ${vinyl.catalogNumber || vinyl.id}`);
-        const url = phone ? `https://wa.me/${phone}?text=${msg}` : `https://wa.me/?text=${msg}`;
-        window.open(url, '_blank');
-      };
     }
 
     // Reset turntable spinning

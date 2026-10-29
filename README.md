@@ -1,8 +1,8 @@
-# 🎵 VINILOS TABLET — Catálogo Interactivo para Tablet
+# 🎵 Hitway Music & Books — Catálogo Interactivo
 
 Aplicación web moderna y táctil diseñada específicamente para que tiendas de música, ferias de coleccionistas y mostradores puedan usar su **tablet (iPad o Android)** como un kiosco interactivo de productos, y desplegarla en **Vercel** en minutos.
 
-Los productos, precios e imágenes se administran desde Google Sheets. La aplicación es de solo lectura y muestra el catálogo sincronizado para los clientes.
+Hitway Music & Books es un catálogo interactivo de solo lectura. Los productos, precios e imágenes se administran desde Google Sheets.
 
 ---
 
@@ -21,7 +21,6 @@ Los productos, precios e imágenes se administran desde Google Sheets. La aplica
 - **Modo de solo lectura:** Los clientes pueden explorar el catálogo, pero no agregar, editar ni borrar productos desde la aplicación.
 - **PWA (Progressive Web App):** Instalable en la pantalla de inicio del iPad o Android para ejecutarse a pantalla completa (Fullscreen Kiosk Mode) sin barras del navegador.
 - **Filtros y Búsqueda Instantánea:** Búsqueda en tiempo real por título, artista o sello; filtrado por género, formato (12" LP, 2xLP, Gatefold, 180g) y disponibilidad en stock.
-- **Botón de Pedido / Reserva por WhatsApp:** Los clientes pueden pulsar un botón para generar automáticamente un mensaje de consulta o reserva con el código, precio y título del vinilo.
 
 ---
 
@@ -75,6 +74,7 @@ El catálogo es de solo lectura. Administra productos, precios e imágenes direc
 - La sincronización también se ejecuta al abrir el catálogo y cada 5 minutos mientras está abierto. Solo se muestran los productos de la hoja; los que se quiten de ella desaparecerán del catálogo.
 - Para un producto con varias imágenes, coloca cada URL en una fila. En las filas de imágenes adicionales, deja `PRODUCTO` y `SKU` vacíos. La primera imagen se usa como portada.
 - El `SKU` identifica el producto y la columna `PRECIO` actualiza su precio.
+- Si un producto no tiene precio, igualmente aparecerá y mostrará **Consultar precio** hasta que completes la celda.
 
 ---
 

@@ -1,8 +1,8 @@
 // ==========================================================================
-// RETROGROOVE - SERVICE WORKER PARA TABLET PWA (OFFLINE FIRST)
+// HITWAY MUSIC & BOOKS - SERVICE WORKER PARA TABLET PWA (OFFLINE FIRST)
 // ==========================================================================
 
-const CACHE_NAME = 'retrogroove-v5';
+const CACHE_NAME = 'hitway-music-books-v8';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
