@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <radialGradient id="vinylShine" cx="50%" cy="50%" r="50%" fx="30%" fy="30%">
+      <stop offset="0%" stop-color="#2a2e3d" />
+      <stop offset="40%" stop-color="#14161f" />
+      <stop offset="85%" stop-color="#0a0b0e" />
+      <stop offset="100%" stop-color="#050608" />
+    </radialGradient>
+    <radialGradient id="centerLabel" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#f5c563" />
+      <stop offset="70%" stop-color="#e5a93b" />
+      <stop offset="100%" stop-color="#c4821a" />
+    </radialGradient>
+  </defs>
+  <!-- Background -->
+  <rect width="512" height="512" rx="110" fill="#0c0d12"/>
+  
+  <!-- Outer Vinyl Edge -->
+  <circle cx="256" cy="256" r="220" fill="url(#vinylShine)" stroke="#3a3f52" stroke-width="3" />
+  
+  <!-- Grooves -->
+  <circle cx="256" cy="256" r="200" fill="none" stroke="#232734" stroke-width="2" opacity="0.8"/>
+  <circle cx="256" cy="256" r="185" fill="none" stroke="#282d3c" stroke-width="1.5" opacity="0.6"/>
+  <circle cx="256" cy="256" r="170" fill="none" stroke="#1f2330" stroke-width="2" opacity="0.7"/>
+  <circle cx="256" cy="256" r="155" fill="none" stroke="#282d3c" stroke-width="1.5" opacity="0.6"/>
+  <circle cx="256" cy="256" r="140" fill="none" stroke="#1f2330" stroke-width="2" opacity="0.8"/>
+  <circle cx="256" cy="256" r="125" fill="none" stroke="#282d3c" stroke-width="1.5" opacity="0.5"/>
+  <circle cx="256" cy="256" r="110" fill="none" stroke="#1f2330" stroke-width="2" opacity="0.7"/>
+  <circle cx="256" cy="256" r="95" fill="none" stroke="#282d3c" stroke-width="1.5" opacity="0.6"/>
+  
+  <!-- Center Label -->
+  <circle cx="256" cy="256" r="75" fill="url(#centerLabel)" stroke="#452a05" stroke-width="2"/>
+  
+  <!-- Label Details -->
+  <circle cx="256" cy="256" r="60" fill="none" stroke="#a66a10" stroke-width="1" stroke-dasharray="4 3"/>
+  <circle cx="256" cy="256" r="18" fill="#0c0d12" stroke="#2a2e3d" stroke-width="2" />
+  
+  <!-- Stylized Needle / Stylus -->
+  <path d="M 430 110 L 330 210 L 315 200 L 415 100 Z" fill="#e5e9f0" opacity="0.9"/>
+  <circle cx="430" cy="100" r="14" fill="#8892b0" />
+  <rect x="305" y="200" width="16" height="22" rx="3" transform="rotate(-45 313 211)" fill="#e5a93b"/>
+</svg>
