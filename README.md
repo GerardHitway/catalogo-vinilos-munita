@@ -20,7 +20,8 @@ Hitway Music & Books es un catálogo interactivo de solo lectura. Los productos,
 - **Tocadiscos Interactivo:** Al pulsar sobre cualquier vinilo se desliza el disco fuera de la funda con animación 3D y permite simular el giro a 33 ⅓ RPM con surcos concéntricos.
 - **Modo de solo lectura:** Los clientes pueden explorar el catálogo, pero no agregar, editar ni borrar productos desde la aplicación.
 - **PWA (Progressive Web App):** Instalable en la pantalla de inicio del iPad o Android para ejecutarse a pantalla completa (Fullscreen Kiosk Mode) sin barras del navegador.
-- **Filtros y Búsqueda Instantánea:** Búsqueda en tiempo real por título, artista o sello; filtrado por género, formato (12" LP, 2xLP, Gatefold, 180g) y disponibilidad en stock.
+- **Filtros y Búsqueda Instantánea:** Búsqueda en tiempo real por título, artista o sello; filtrado por género y formato (12" LP, 2xLP, Gatefold, 180g).
+- **Precios con IVA:** Se muestra el precio antes de IVA y debajo el total calculado con IVA chileno del 19%.
 
 ---
 

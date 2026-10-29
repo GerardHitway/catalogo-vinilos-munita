@@ -63,8 +63,7 @@
         <!-- Estadísticas del catálogo -->
         <div class="header-actions">
           <div class="header-badge" title="Vinilos en catálogo / disponibles">
-            <span>Discos: <strong id="headerTotalCount">0</strong></span>
-            <span>• En stock: <strong id="headerInStockCount" style="color:var(--accent-green);">0</strong></span>
+            <span>Productos: <strong id="headerTotalCount">0</strong></span>
           </div>
 
           <!-- Botón Ajustes / Respaldo -->
@@ -105,10 +104,6 @@
           <option value="180g">180g Audiophile</option>
         </select>
 
-        <!-- Chip Solo en Stock -->
-        <div id="stockFilterChip" class="stock-filter-chip">
-          <span>Solo en Stock</span>
-        </div>
       </div>
 
       <div class="controls-right">
@@ -186,10 +181,13 @@
 
           <div class="detail-price-box">
             <div>
-              <span style="font-size:0.8rem; color:var(--text-muted); display:block;">Precio de venta</span>
+              <span style="font-size:0.8rem; color:var(--text-muted); display:block;">Precio + IVA</span>
               <span id="modalDetailPrice" class="detail-price-main">$0</span>
             </div>
-            <span id="modalSpecStock" style="font-size:0.85rem; font-weight:700; color:var(--accent-green);">En stock</span>
+            <div class="detail-total-price">
+              <span>Total (IVA 19%)</span>
+              <strong id="modalDetailTotal">$0</strong>
+            </div>
           </div>
 
           <!-- Especificaciones Técnicas para Coleccionistas -->
@@ -414,15 +412,10 @@
             </select>
           </div>
 
-          <!-- Precio y Stock -->
+          <!-- Precio -->
           <div class="form-group">
             <label class="form-label" for="editPrice">Precio de Venta (Peso Chileno - CLP) *</label>
             <input type="number" id="editPrice" class="form-input" step="1" min="0" required placeholder="29990">
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="editStock">Unidades en Stock *</label>
-            <input type="number" id="editStock" class="form-input" min="0" required placeholder="3">
           </div>
 
           <!-- Destacado -->

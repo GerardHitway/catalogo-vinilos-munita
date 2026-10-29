@@ -304,8 +304,6 @@ const DEFAULT_VINYLS = [
     rpm: "33 ⅓ RPM",
     condition: "Mint (M)",
     price: 28990,
-    stock: 5,
-    status: "in_stock",
     coverImage: generateGenericCoverSvg("Colección Clásica Vol. 1", "Ensamble Acústico", "Rock Clásico", 0),
     discColor: "#111111",
     featured: true,
@@ -331,8 +329,6 @@ const DEFAULT_VINYLS = [
     rpm: "33 ⅓ RPM",
     condition: "Near Mint (NM)",
     price: 34990,
-    stock: 4,
-    status: "in_stock",
     coverImage: generateGenericCoverSvg("Sesiones de Jazz Nocturno", "Cuarteto de Medianoche", "Jazz", 1),
     discColor: "#1e293b",
     featured: true,
@@ -357,8 +353,6 @@ const DEFAULT_VINYLS = [
     rpm: "33 ⅓ RPM",
     condition: "Mint (M)",
     price: 38990,
-    stock: 3,
-    status: "in_stock",
     coverImage: generateGenericCoverSvg("Frecuencias & Sintetizadores", "Laboratorio Electrónico", "Electrónica & Disco", 2),
     discColor: "#f5c563",
     featured: true,
@@ -383,8 +377,6 @@ const DEFAULT_VINYLS = [
     rpm: "33 ⅓ RPM",
     condition: "Very Good Plus (VG+)",
     price: 27500,
-    stock: 6,
-    status: "in_stock",
     coverImage: generateGenericCoverSvg("Groove Rítmico & Metales", "Colectivo Funk", "Soul & R&B", 3),
     discColor: "#111111",
     featured: false,
@@ -409,8 +401,6 @@ const DEFAULT_VINYLS = [
     rpm: "33 ⅓ RPM",
     condition: "Near Mint (NM)",
     price: 31990,
-    stock: 2,
-    status: "low_stock",
     coverImage: generateGenericCoverSvg("Ecos del Folklore & Cuerdas", "Ensamble del Sur", "Rock Latino", 4),
     discColor: "#b45309",
     featured: true,
@@ -435,8 +425,6 @@ const DEFAULT_VINYLS = [
     rpm: "33 ⅓ RPM",
     condition: "Mint (M)",
     price: 36990,
-    stock: 4,
-    status: "in_stock",
     coverImage: generateGenericCoverSvg("Sinfonía Contemporánea", "Orquesta Filarmónica Moderna", "Instrumental", 5),
     discColor: "#1e1b4b",
     featured: false,
@@ -461,8 +449,6 @@ const DEFAULT_VINYLS = [
     rpm: "33 ⅓ RPM",
     condition: "Very Good Plus (VG+)",
     price: 24990,
-    stock: 5,
-    status: "in_stock",
     coverImage: generateGenericCoverSvg("Baladas Acústicas de Salón", "Trío de Guitarras", "Pop & Acústico", 6),
     discColor: "#111111",
     featured: false,
@@ -487,8 +473,6 @@ const DEFAULT_VINYLS = [
     rpm: "33 ⅓ RPM",
     condition: "Near Mint (NM)",
     price: 29990,
-    stock: 3,
-    status: "in_stock",
     coverImage: generateGenericCoverSvg("Ritmos Tropicales & Raíces", "Orquesta del Mar", "Mundo & Tradicional", 7),
     discColor: "#042f2e",
     featured: false,
@@ -718,25 +702,27 @@ class VinylStorage {
     const existingVinyls = await this.getAllVinyls();
     const existingBySku = new Map(existingVinyls.map(vinyl => [String(vinyl.sku || vinyl.catalogNumber || '').trim(), vinyl]));
     const productsWithoutPrice = importedProducts.filter(product => product.price === null).length;
+    const preservedFields = ['genre', 'year', 'label', 'format', 'weight', 'rpm', 'condition', 'featured', 'description', 'tracklist', 'discColor'];
     const vinyls = importedProducts.map((product, index) => {
       const existing = existingBySku.get(product.sku);
+      const preservedData = Object.fromEntries(
+        preservedFields
+          .filter(field => existing?.[field] !== undefined)
+          .map(field => [field, existing[field]])
+      );
       const [artistPart, ...titleParts] = product.name.replace(/\s*\|\s*VINILO\s*$/i, '').split(/\s+-\s+/);
       const artist = titleParts.length ? artistPart.trim() : 'Vinilos Munita';
       const title = titleParts.length ? titleParts.join(' - ').trim() : artistPart.trim();
       const coverImage = product.images[0] || existing?.coverImage ||
         generateGenericCoverSvg(title, artist, existing?.genre || 'Vinilos', index);
-      const stock = existing ? Number(existing.stock) || 0 : 1;
-
       return {
-        ...(existing || {}),
+        ...preservedData,
         id: existing?.id || `sheet-${product.sku}`,
         sku: product.sku,
         title,
         artist,
         catalogNumber: product.sku,
         price: product.price,
-        stock,
-        status: stock <= 0 ? 'out_of_stock' : (stock <= 2 ? 'low_stock' : 'in_stock'),
         genre: existing?.genre || 'Vinilos',
         year: existing?.year || new Date().getFullYear(),
         label: existing?.label || 'Vinilos Munita',

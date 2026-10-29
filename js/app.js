@@ -21,7 +21,6 @@ class VinylApp {
     this.searchQuery = '';
     this.sortBy = 'featured';
     this.filterFormat = 'all';
-    this.onlyInStock = false;
     this.viewMode = 'grid'; // 'grid' | 'list'
     this.currentDetailVinylId = null;
     this.isVinylSpinning = false;
@@ -95,12 +94,7 @@ class VinylApp {
 
   updateStats() {
     const totalCountEl = document.getElementById('headerTotalCount');
-    const inStockCountEl = document.getElementById('headerInStockCount');
     if (totalCountEl) totalCountEl.textContent = this.vinyls.length;
-    if (inStockCountEl) {
-      const inStock = this.vinyls.filter(v => v.stock > 0).length;
-      inStockCountEl.textContent = inStock;
-    }
   }
 
   // ==========================================================================
@@ -175,11 +169,6 @@ class VinylApp {
       result = result.filter(v => (v.format || '').toLowerCase().includes(this.filterFormat.toLowerCase()));
     }
 
-    // Filtro solo en stock
-    if (this.onlyInStock) {
-      result = result.filter(v => v.stock > 0);
-    }
-
     // Ordenamiento
     switch (this.sortBy) {
       case 'price-low':
@@ -239,17 +228,6 @@ class VinylApp {
     const currency = this.settings.currency || '$';
 
     grid.innerHTML = this.filteredVinyls.map(vinyl => {
-      // Stock pill styling
-      let stockClass = 'in-stock';
-      let stockLabel = `En stock (${vinyl.stock})`;
-      if (vinyl.stock <= 0) {
-        stockClass = 'out-of-stock';
-        stockLabel = 'Agotado';
-      } else if (vinyl.stock <= 2) {
-        stockClass = 'low-stock';
-        stockLabel = `Últimas ${vinyl.stock} unid.`;
-      }
-
       const coverSrc = vinyl.coverImage || generateVinylSvgCover(vinyl.title, vinyl.artist, vinyl.genre);
       const safeId = escapeHtml(vinyl.id);
       const safeTitle = escapeHtml(vinyl.title);
@@ -280,11 +258,8 @@ class VinylApp {
 
             <div class="card-footer">
               <div class="card-price">
-                ${vinyl.price === null || vinyl.price === undefined
-                  ? '<span class="price-pending">Consultar precio</span>'
-                  : `<span class="currency-symbol">${escapeHtml(currency)}</span>${Math.round(Number(vinyl.price) || 0).toLocaleString('es-CL')}`}
+                ${this.renderPrice(vinyl.price, currency)}
               </div>
-              <span class="card-stock-pill ${stockClass}">${stockLabel}</span>
             </div>
           </div>
 
@@ -322,10 +297,11 @@ class VinylApp {
     document.getElementById('modalDetailGenre').textContent = vinyl.genre;
     document.getElementById('modalDetailFormatBadge').textContent = vinyl.format || '12" LP';
     document.getElementById('modalDetailConditionBadge').textContent = vinyl.condition || 'Mint (M)';
-    const formattedPriceCLP = vinyl.price === null || vinyl.price === undefined
-      ? 'Consultar precio'
-      : `${currency}${Math.round(Number(vinyl.price) || 0).toLocaleString('es-CL')}`;
-    document.getElementById('modalDetailPrice').textContent = formattedPriceCLP;
+    document.getElementById('modalDetailPrice').textContent = this.formatPrice(vinyl.price, currency);
+    document.getElementById('modalDetailTotal').textContent = this.formatPrice(
+      vinyl.price === null || vinyl.price === undefined ? null : Math.round(Number(vinyl.price) * 1.19),
+      currency
+    );
 
     // Especificaciones
     document.getElementById('modalSpecYear').textContent = vinyl.year || '-';
@@ -333,8 +309,6 @@ class VinylApp {
     document.getElementById('modalSpecCat').textContent = vinyl.catalogNumber || '-';
     document.getElementById('modalSpecWeight').textContent = vinyl.weight || '180g';
     document.getElementById('modalSpecRpm').textContent = vinyl.rpm || '33 ⅓ RPM';
-    document.getElementById('modalSpecStock').textContent = vinyl.stock > 0 ? `${vinyl.stock} unidades disponibles` : 'Agotado';
-
     // Descripción
     document.getElementById('modalDetailDesc').textContent = vinyl.description || 'Sin reseña adicional para esta edición.';
 
@@ -375,6 +349,23 @@ class VinylApp {
     }
     document.body.style.overflow = '';
     this.isVinylSpinning = false;
+  }
+
+  formatPrice(price, currency = this.settings.currency || '$') {
+    if (price === null || price === undefined || !Number.isFinite(Number(price))) return 'Consultar precio';
+    return `${currency}${Math.round(Number(price)).toLocaleString('es-CL')}`;
+  }
+
+  renderPrice(price, currency) {
+    const basePrice = this.formatPrice(price, currency);
+    const totalPrice = price === null || price === undefined
+      ? 'Consultar precio'
+      : this.formatPrice(Math.round(Number(price) * 1.19), currency);
+
+    return `<span class="price-base-label">Precio + IVA</span>
+      <span class="price-base">${escapeHtml(basePrice)}</span>
+      <span class="price-total-label">Total (IVA 19%)</span>
+      <span class="price-total">${escapeHtml(totalPrice)}</span>`;
   }
 
   toggleVinylSpin() {
@@ -440,16 +431,6 @@ class VinylApp {
     if (formatSelect) {
       formatSelect.addEventListener('change', (e) => {
         this.filterFormat = e.target.value;
-        this.applyFilters();
-      });
-    }
-
-    // Chip de filtro solo en stock
-    const stockChip = document.getElementById('stockFilterChip');
-    if (stockChip) {
-      stockChip.addEventListener('click', () => {
-        this.onlyInStock = !this.onlyInStock;
-        stockChip.classList.toggle('active', this.onlyInStock);
         this.applyFilters();
       });
     }
