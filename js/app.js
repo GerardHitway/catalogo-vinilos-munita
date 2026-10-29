@@ -161,6 +161,7 @@ class VinylApp {
     this.settings = {};
     this.searchQuery = '';
     this.sortBy = 'artist-az';
+    this.formatFilter = 'all';
     this.viewMode = 'grid'; // 'grid' | 'list'
     this.currentDetailVinylId = null;
     this.detailImages = [];
@@ -255,6 +256,10 @@ class VinylApp {
         const artist = (v.artist || '').toLowerCase();
         return title.includes(q) || artist.includes(q);
       });
+    }
+
+    if (this.formatFilter !== 'all') {
+      result = result.filter(vinyl => vinyl.format?.trim().toUpperCase() === this.formatFilter);
     }
 
     const comparePrice = (a, b, direction = 1) => {
@@ -359,12 +364,17 @@ class VinylApp {
     // Asignar eventos de click a las tarjetas
     grid.querySelectorAll('.vinyl-card').forEach(card => {
       card.addEventListener('click', (e) => {
+        if (!(e.target instanceof Element)) return;
+        const cartControl = e.target.closest('.product-cart-control');
+        if (cartControl) {
+          e.stopPropagation();
+        }
         const cartAction = e.target.closest('[data-product-cart-action]');
         if (cartAction) {
-          e.stopPropagation();
           this.handleProductCartAction(card.dataset.id, cartAction.dataset.productCartAction);
           return;
         }
+        if (cartControl) return;
         const id = card.dataset.id;
         this.openVinylDetail(id);
       });
@@ -442,11 +452,12 @@ class VinylApp {
   renderCart() {
     const countEl = document.getElementById('cartItemCount');
     const listEl = document.getElementById('cartItems');
+    const subtotalEl = document.getElementById('cartSubtotal');
     const totalEl = document.getElementById('cartTotal');
     const noticeEl = document.getElementById('cartPriceNotice');
     const exportButton = document.getElementById('btnExportQuote');
     const clearButton = document.getElementById('btnClearCart');
-    if (!countEl || !listEl || !totalEl || !noticeEl || !exportButton || !clearButton) return;
+    if (!countEl || !listEl || !subtotalEl || !totalEl || !noticeEl || !exportButton || !clearButton) return;
 
     this.updateCartButtons();
     const rows = this.getCartRows();
@@ -458,20 +469,22 @@ class VinylApp {
 
     if (!rows.length) {
       listEl.innerHTML = '<p class="cart-empty">Aún no has agregado productos.</p>';
+      subtotalEl.textContent = this.formatPrice(0);
       totalEl.textContent = this.formatPrice(0);
       noticeEl.hidden = true;
       return;
     }
 
     let hasMissingPrices = false;
-    const total = rows.reduce((sum, { vinyl, quantity }) => {
+    const totals = rows.reduce((amounts, { vinyl, quantity }) => {
       const hasPrice = vinyl.price !== null && vinyl.price !== undefined && Number.isFinite(Number(vinyl.price));
-      if (!hasPrice) {
-        hasMissingPrices = true;
-        return sum;
+      if (!hasPrice) hasMissingPrices = true;
+      else {
+        amounts.subtotal += Number(vinyl.price) * quantity;
+        amounts.total += Math.round(Number(vinyl.price) * 1.19) * quantity;
       }
-      return sum + Math.round(Number(vinyl.price) * 1.19) * quantity;
-    }, 0);
+      return amounts;
+    }, { subtotal: 0, total: 0 });
 
     listEl.innerHTML = rows.map(({ vinyl, quantity }) => `
       <article class="cart-row" data-cart-id="${escapeHtml(vinyl.id)}">
@@ -488,7 +501,8 @@ class VinylApp {
         </div>
       </article>
     `).join('');
-    totalEl.textContent = this.formatPrice(total);
+    subtotalEl.textContent = this.formatPrice(totals.subtotal);
+    totalEl.textContent = this.formatPrice(totals.total);
     noticeEl.hidden = !hasMissingPrices;
   }
 
@@ -687,6 +701,14 @@ class VinylApp {
     if (sortSelect) {
       sortSelect.addEventListener('change', (e) => {
         this.sortBy = e.target.value;
+        this.applyFilters();
+      });
+    }
+
+    const formatFilterSelect = document.getElementById('formatFilterSelect');
+    if (formatFilterSelect) {
+      formatFilterSelect.addEventListener('change', event => {
+        this.formatFilter = event.target.value;
         this.applyFilters();
       });
     }

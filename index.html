@@ -25,7 +25,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet">
 
   <!-- Estilos -->
-  <link rel="stylesheet" href="./css/styles.css?v=10">
+  <link rel="stylesheet" href="./css/styles.css?v=12">
 </head>
 <body>
 
@@ -87,6 +87,11 @@
           <option value="price-high">Precio: mayor a menor</option>
           <option value="artist-az" selected>Artista: A - Z</option>
         </select>
+        <select id="formatFilterSelect" class="select-control" title="Filtrar por formato">
+          <option value="all">Todos los formatos</option>
+          <option value="VINILO">Vinilos</option>
+          <option value="CD">CD</option>
+        </select>
 
       </div>
 
@@ -123,6 +128,10 @@
       </header>
       <div class="cart-modal-body">
         <div id="cartItems" class="cart-items"></div>
+        <div class="cart-summary">
+          <span>Total estimado sin IVA</span>
+          <strong id="cartSubtotal">$0</strong>
+        </div>
         <div class="cart-summary">
           <span>Total estimado con IVA</span>
           <strong id="cartTotal">$0</strong>
