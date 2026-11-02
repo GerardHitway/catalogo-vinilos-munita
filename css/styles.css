@@ -128,14 +128,14 @@ body {
 .brand-heading {
   margin: 0;
   line-height: 0;
+  max-width: 100%;
 }
 
 .brand-logo {
   display: block;
   width: 190px;
-  height: 60px;
-  object-fit: cover;
-  object-position: center;
+  max-width: 100%;
+  height: auto;
 }
 
 /* Barra de búsqueda central en el header */
@@ -1757,8 +1757,7 @@ body {
   }
 
   .brand-logo {
-    width: 150px;
-    height: 48px;
+    width: 130px;
   }
 
   .header-badge {
