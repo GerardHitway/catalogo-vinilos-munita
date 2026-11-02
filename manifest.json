@@ -9,16 +9,10 @@
   "theme_color": "#0c0d12",
   "icons": [
     {
-      "src": "./assets/icon-192.svg",
-      "sizes": "192x192",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "./assets/icon-512.svg",
-      "sizes": "512x512",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "src": "./assets/logo-hitway.png",
+      "sizes": "499x499",
+      "type": "image/png",
+      "purpose": "any"
     }
   ]
 }

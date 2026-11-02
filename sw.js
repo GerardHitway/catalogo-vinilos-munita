@@ -2,7 +2,7 @@
 // HITWAY MUSIC & BOOKS - SERVICE WORKER PARA TABLET PWA (OFFLINE FIRST)
 // ==========================================================================
 
-const CACHE_NAME = 'hitway-music-books-v18';
+const CACHE_NAME = 'hitway-music-books-v19';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -11,8 +11,7 @@ const ASSETS_TO_CACHE = [
   './js/icons.js',
   './js/db.js',
   './js/app.js',
-  './assets/icon-192.svg',
-  './assets/icon-512.svg'
+  './assets/logo-hitway.png'
 ];
 
 self.addEventListener('install', (e) => {

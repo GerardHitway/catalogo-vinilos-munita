@@ -357,7 +357,7 @@ class VinylApp {
           <div class="card-sleeve-wrapper">
             <div class="vinyl-disc-peeking"></div>
             <div class="card-cover-container">
-              <img src="${safeCover}" alt="${safeTitle}" class="card-cover-img" loading="lazy" onerror="this.onerror=null;this.src='./assets/icon-192.svg'">
+              <img src="${safeCover}" alt="${safeTitle}" class="card-cover-img" loading="lazy" onerror="this.onerror=null;this.src='./assets/logo-hitway.png'">
               <span class="card-badge-format">${escapeHtml(vinyl.format || 'Formato no especificado')}</span>
               ${imageCount > 1 ? `<span class="card-image-count">${imageCount} fotos</span>` : ''}
             </div>
@@ -618,7 +618,7 @@ class VinylApp {
     imageEl.alt = `${document.getElementById('modalDetailTitle').textContent} - Foto ${this.currentImageIndex + 1}`;
     imageEl.onerror = () => {
       imageEl.onerror = null;
-      imageEl.src = './assets/icon-192.svg';
+      imageEl.src = './assets/logo-hitway.png';
     };
     counterEl.textContent = `${this.currentImageIndex + 1} / ${this.detailImages.length}`;
     previousButton.hidden = this.detailImages.length < 2;
