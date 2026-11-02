@@ -16,7 +16,7 @@
   
   <!-- Manifest PWA -->
   <link rel="manifest" href="./manifest.json">
-  <link rel="icon" type="image/png" href="./assets/logo-hitway.png">
+  <link rel="icon" type="image/png" href="./assets/favicon.png">
   <link rel="apple-touch-icon" href="./assets/logo-hitway.png">
 
   <!-- Fuentes Web -->
@@ -25,7 +25,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet">
 
   <!-- Estilos -->
-  <link rel="stylesheet" href="./css/styles.css?v=13">
+  <link rel="stylesheet" href="./css/styles.css?v=14">
 </head>
 <body>
 
@@ -36,19 +36,9 @@
       <div class="header-content">
         <!-- Logo y Marca -->
         <div class="brand-section" onclick="location.reload()">
-          <div class="brand-icon-wrapper">
-            <svg class="brand-icon-vinyl" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="50" cy="50" r="46" fill="#14161f" stroke="#e5a93b" stroke-width="3"/>
-              <circle cx="50" cy="50" r="35" stroke="#252837" stroke-width="2"/>
-              <circle cx="50" cy="50" r="25" stroke="#252837" stroke-width="2"/>
-              <circle cx="50" cy="50" r="16" fill="#e5a93b"/>
-              <circle cx="50" cy="50" r="5" fill="#0c0d12"/>
-            </svg>
-          </div>
-          <div class="brand-title-group">
-            <h1 class="brand-title" id="storeBrandTitle">Hitway Music &amp; Books</h1>
-            <span class="brand-subtitle" id="storeBrandSubtitle">Catálogo de CD y vinilos</span>
-          </div>
+          <h1 class="brand-heading">
+            <img class="brand-logo" src="./assets/logo-hitway.png" alt="Hitway Music & Books">
+          </h1>
         </div>
 
         <!-- Buscador Táctil con Debounce -->
